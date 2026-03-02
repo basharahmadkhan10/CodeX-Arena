@@ -1,83 +1,30 @@
-###  Overview
+# CodeX Arena
 
-WorkOS is an internal engineering workflow platform built to manage operational tasks and production incidents with strict lifecycle control, ownership enforcement, and SLA-driven execution.
-The system focuses on **engineering accountability, predictable incident handling, and audit-safe operations** commonly required in enterprise environments.
+Real-Time 1v1 Competitive Coding Platform
 
----
+CodeX Arena is a scalable web application where developers compete head-to-head on algorithmic problems with live matchmaking, real-time submissions, and dynamic scoring.
 
-###  Problem Statement
+Features
+- Real-time 1v1 coding duels with live matchmaking and auto pairing
+- Synchronized duel execution with submission validation
+- Elo-based rating calculation and winner determination
+- JWT-secured REST APIs and modular backend architecture
 
-Internal engineering tools often break down due to:
+Why This Project?
+Built to provide a real-time competitive coding experience that simulates coding battles under time constraints and ranks users based on performance.
 
-* Unclear task ownership and escalation paths
-* Manual SLA tracking and delayed responses
-* Lack of traceability for operational decisions
+Tech Stack
+React.js • TailwindCSS • Zustand • Monaco Editor • Node.js • Express.js • Socket.io • MongoDB Atlas • JWT
 
-WorkOS is designed to formalize these workflows using backend-enforced rules and system-level guarantees.
+Architecture Overview
+- WebSockets (Socket.io) for real-time communication
+- Modular services: Matchmaking, Duel, Rating
+- Auth with JWT and secure APIs
+- Optimized MongoDB schema for performance and concurrency
 
----
+Getting Started
 
-###  System Design Highlights
-
-* State-Machine–Based Task & Incident Lifecycles
-  Tasks and incidents follow predefined state transitions (Open → Acknowledged → In Progress → Blocked → Resolved → Archived), preventing invalid or skipped steps.
-
-* Role-Scoped Authorization Model
-  Engineers, leads, managers, and auditors operate under strictly scoped permissions enforced at the API and workflow level.
-
-* SLA Enforcement & Escalation Logic
-  Each workflow carries SLA policies monitored asynchronously, triggering escalations and alerts when deadlines are breached.
-
-* Audit-Ready Event Logging
-  All workflow actions are recorded as immutable events, enabling post-incident reviews and compliance tracking.
-
----
-
-###  Core Workflow
-
-1. Task or incident is created with priority and SLA policy
-2. Ownership is assigned based on role and availability
-3. Engineers progress the workflow under enforced state rules
-4. SLA workers monitor deadlines and trigger escalations
-5. Resolution and decision history remain permanently auditable
-
----
-
-###  Backend Architecture
-
-* REST APIs with fine-grained authorization middleware
-* Rule-based workflow evaluation engine
-* Background workers for SLA tracking and escalation handling
-* Async notification pipelines for system alerts
-* MongoDB schemas designed for versioning and traceability
-
----
-
-### Design Decisions (Interview-Relevant)
-
-* Workflow correctness is enforced at the **data and service layer**
-* State transitions are validated centrally, not per endpoint
-* No destructive updates — operational history is preserved
-* System favors correctness and observability over UI complexity
-
----
-
-### Tech Stack
-
-* **Backend:** Node.js, Express.js
-* **Database:** MongoDB, Mongoose
-* **Auth:** JWT, Role-Based Access Control (RBAC)
-* **Async Processing:** Job Queues, Background Workers
-* **Tools:** Git/GitHub, Postman
-
----
-
-###  Status
-
-WorkOS is under active development with emphasis on scalable workflow design, SLA enforcement, and enterprise-grade backend reliability.
-
----
-
-### Why This Project
-
-WorkOS demonstrates how internal engineering platforms are built to handle **incidents, deadlines, escalation policies, and accountability** — patterns widely used in SRE, DevOps, and enterprise backend systems.
+### 1. Clone the Repo
+```bash
+git clone https://github.com/basharahmadkhan10/CodeX-Arena
+cd codex-arena
