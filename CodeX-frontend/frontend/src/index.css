@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #b2efef;
+  color: #000;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #e0f8f8; }
+::-webkit-scrollbar-thumb { background: #00c8c8; border-radius: 4px; border: 1px solid #000; }
+::-webkit-scrollbar-thumb:hover { background: #00a0a0; }
+
+/* Monaco editor overrides */
+.monaco-editor { border-radius: 0; }
