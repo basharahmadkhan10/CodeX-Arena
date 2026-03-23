@@ -24,14 +24,14 @@ export const connectSocket = (token) => {
 
   isConnecting = true;
 
-  socket = io("http://localhost:5000", {
+  socket = io("https://codex-arena-backend-90y5.onrender.com", {
     auth: { token },
     transports: ["websocket"],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 2000,
     withCredentials: true,
-    forceNew: true, // force fresh connection with correct token
+    forceNew: true, 
   });
 
   socket.on("connect", () => {
@@ -43,7 +43,6 @@ export const connectSocket = (token) => {
     isConnecting = false;
     console.log("🔌 Socket disconnected:", reason);
     if (reason === "io server disconnect") {
-      // Server kicked us (bad token) — don't auto-reconnect
       socket.removeAllListeners();
       socket = null;
     }
