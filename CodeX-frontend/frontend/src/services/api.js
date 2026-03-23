@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "/api/v1",
+  baseURL: "https://codex-arena-backend-90y5.onrender.com/api/v1",
   withCredentials: true,
 });
 
