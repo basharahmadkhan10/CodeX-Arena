@@ -16,7 +16,7 @@ function RequireAuth({ children }) {
   const { user, isInitialized } = useAuthStore();
   if (!isInitialized)
     return (
-      <div className="min-h-screen bg-[#b2efef] flex items-center justify-center">
+      <div className="min-h-screen bg-[rgb(238,11,22)] flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-black/20 border-t-black rounded-full animate-spin mx-auto mb-3" />
           <p className="text-black/40 text-sm font-bold">Loading...</p>
