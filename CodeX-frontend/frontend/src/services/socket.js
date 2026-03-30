@@ -24,7 +24,7 @@ export const connectSocket = (token) => {
 
   isConnecting = true;
 
-  socket = io("http://localhost:5000", {
+  socket = io("https://codex-arena-backend-90y5.onrender.com", {
     auth: { token },
     transports: ["websocket"],
     reconnection: true,
