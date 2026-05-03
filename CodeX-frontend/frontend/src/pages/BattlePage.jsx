@@ -16,7 +16,6 @@ import {
   Users,
   ShieldAlert,
   Maximize2,
-  Minimize2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import useBattleStore from "../store/battleStore";
@@ -233,9 +232,9 @@ export default function BattlePage() {
   const isBattleActive = !!battle && !battleResult;
 
   // Constants for enforcement
-  const MAX_FULLSCREEN_EXITS = 2; // Auto-forfeit after 2 exits
-  const MAX_TAB_SWITCHES = 3; // Auto-forfeit after 3 tab switches
-  const MAX_VIOLATIONS = 5; // Auto-forfeit after 5 total violations
+  const MAX_FULLSCREEN_EXITS = 2;
+  const MAX_TAB_SWITCHES = 3;
+  const MAX_VIOLATIONS = 5;
 
   // Function to auto-forfeit due to violations
   const autoForfeit = useCallback(
@@ -245,7 +244,6 @@ export default function BattlePage() {
       setHasAutoForfeited(true);
       toast.error(`⚠️ Disqualified: ${reason}`, { duration: 5000 });
 
-      // Show a warning modal or message before forfeiting
       setTimeout(() => {
         forfeit(battle.battleId);
       }, 1000);
@@ -334,7 +332,6 @@ export default function BattlePage() {
       const isCurrentlyFullscreen = !!document.fullscreenElement;
 
       if (!isCurrentlyFullscreen && isFullscreen) {
-        // User exited fullscreen
         setFullscreenExits((prev) => {
           const newCount = prev + 1;
           const remaining = MAX_FULLSCREEN_EXITS - newCount;
@@ -353,16 +350,13 @@ export default function BattlePage() {
           return newCount;
         });
 
-        setViolations((prev) => prev + 2); // Fullscreen exit counts as 2 violations
-
-        // Re-request fullscreen
+        setViolations((prev) => prev + 2);
         requestFullscreen();
       }
 
       setIsFullscreen(!!document.fullscreenElement);
     };
 
-    // Request fullscreen when battle starts
     const requestFullscreen = async () => {
       try {
         await document.documentElement.requestFullscreen();
@@ -374,10 +368,8 @@ export default function BattlePage() {
       }
     };
 
-    // Check current fullscreen state
     setIsFullscreen(!!document.fullscreenElement);
 
-    // If not in fullscreen, request it
     if (!document.fullscreenElement) {
       requestFullscreen();
     }
@@ -442,12 +434,9 @@ export default function BattlePage() {
         setViolations((prev) => prev + 1);
       }
 
-      // Also check if fullscreen was lost without detection
       if (!document.fullscreenElement && isBattleActive && !hasAutoForfeited) {
         setFullscreenExits((prev) => prev + 1);
         setViolations((prev) => prev + 2);
-
-        // Re-request fullscreen
         document.documentElement.requestFullscreen().catch(console.warn);
       }
     }, 5000);
@@ -540,7 +529,6 @@ export default function BattlePage() {
     ];
 
     const handleKeyDown = (e) => {
-      // Allow Escape to exit fullscreen (but count as violation)
       if (e.key === "Escape" && isFullscreen && isBattleActive) {
         e.preventDefault();
         toast.warning(
@@ -621,7 +609,6 @@ export default function BattlePage() {
   }, [isBattleActive]);
 
   const handleCancel = () => {
-    // Exit fullscreen when canceling
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(console.warn);
     }
@@ -639,16 +626,11 @@ export default function BattlePage() {
   const isTimeCritical = timeLeft <= 120;
   const myAC = submissionResult?.status === "AC";
 
-  // Calculate remaining warnings
   const remainingFullscreenExits = Math.max(
     0,
     MAX_FULLSCREEN_EXITS - fullscreenExits,
   );
   const remainingTabSwitches = Math.max(0, MAX_TAB_SWITCHES - focusLostCount);
-  const remainingViolations = Math.max(
-    0,
-    MAX_VIOLATIONS - Math.floor(violations),
-  );
 
   const handleSubmit = () => {
     if (!code.trim()) {
@@ -807,12 +789,14 @@ export default function BattlePage() {
 
         {/* Timer */}
         <div
-          className={`flex items-center gap-1.5 font-black text-lg border-2 border-black px-3 py-1 rounded-xl shadow-[2px_2px_0px_#000] ${isTimeCritical ? "bg-red-100 text-red-600 animate-pulse" : "bg-white text-black"}`}>
+          className={`flex items-center gap-1.5 font-black text-lg border-2 border-black px-3 py-1 rounded-xl shadow-[2px_2px_0px_#000] ${
+            isTimeCritical ? "bg-red-100 text-red-600 animate-pulse" : "bg-white text-black"
+          }`}>
           <Clock size={15} />
           {formatTime(timeLeft)}
         </div>
 
-        {/* Violation counter badge with warnings remaining */}
+        {/* Violation counter badge */}
         {(violations > 0 || fullscreenExits > 0 || focusLostCount > 0) && (
           <div className="flex flex-col items-end gap-0.5">
             <div
@@ -829,13 +813,21 @@ export default function BattlePage() {
             <div className="flex gap-2 text-[10px] font-black">
               {fullscreenExits > 0 && (
                 <span
-                  className={`px-1.5 py-0.5 rounded ${fullscreenExits >= MAX_FULLSCREEN_EXITS ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700"}`}>
+                  className={`px-1.5 py-0.5 rounded ${
+                    fullscreenExits >= MAX_FULLSCREEN_EXITS ?
+                      "bg-red-100 text-red-600"
+                    : "bg-amber-100 text-amber-700"
+                  }`}>
                   🖥️ {remainingFullscreenExits}/{MAX_FULLSCREEN_EXITS}
                 </span>
               )}
               {focusLostCount > 0 && (
                 <span
-                  className={`px-1.5 py-0.5 rounded ${focusLostCount >= MAX_TAB_SWITCHES ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700"}`}>
+                  className={`px-1.5 py-0.5 rounded ${
+                    focusLostCount >= MAX_TAB_SWITCHES ?
+                      "bg-red-100 text-red-600"
+                    : "bg-amber-100 text-amber-700"
+                  }`}>
                   🔄 {remainingTabSwitches}/{MAX_TAB_SWITCHES}
                 </span>
               )}
@@ -850,20 +842,352 @@ export default function BattlePage() {
         </button>
       </header>
 
-      {/* Rest of your component remains the same... */}
+      {/* Main Content - Problem Panel and Editor */}
       <div className="flex-1 flex overflow-hidden">
-        {/* LEFT: Problem panel - same as before */}
+        {/* LEFT: Problem panel */}
         <div className="w-[420px] shrink-0 border-r-2 border-black flex flex-col overflow-hidden bg-white">
-          {/* ... keep existing problem panel code ... */}
+          <div className="flex border-b-2 border-black shrink-0 bg-[#f0fafa]">
+            {TABS.map((t) => (
+              <button
+                key={t}
+                onClick={() => setActiveTab(t)}
+                className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest transition-all border-r-2 border-black last:border-r-0 ${
+                  activeTab === t ?
+                    "bg-[rgb(238,11,22)] text-white"
+                  : "text-black/40 hover:text-black hover:bg-[#e0e8e8]"
+                }`}>
+                {t}
+                {t === "results" && submissionResult && (
+                  <span
+                    className={`ml-1.5 inline-block w-2 h-2 rounded-full border border-black ${
+                      submissionResult.status === "AC" ?
+                        "bg-green-400"
+                      : "bg-red-400"
+                    }`}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === "problem" && problem && (
+              <div className="p-5 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="text-lg font-black text-black leading-tight">
+                    {problem.title}
+                  </h2>
+                  <DiffBadge diff={problem.difficulty} />
+                </div>
+                {problem.tags?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {problem.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="text-xs bg-[#e0f8f8] text-black font-bold px-2 py-0.5 rounded-lg border-2 border-black/20">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="text-sm text-black/70 leading-relaxed whitespace-pre-wrap font-medium">
+                  {problem.description}
+                </div>
+                {problem.constraints && (
+                  <div className="bg-[#f0fafa] border-2 border-black rounded-xl p-3 shadow-[2px_2px_0px_#000]">
+                    <p className="text-xs font-black text-black uppercase tracking-wider mb-1.5">
+                      Constraints
+                    </p>
+                    <p className="text-xs text-black/60 font-mono whitespace-pre-wrap">
+                      {problem.constraints}
+                    </p>
+                  </div>
+                )}
+                {problem.examples?.map((ex, i) => (
+                  <div
+                    key={i}
+                    className="border-2 border-black rounded-xl overflow-hidden shadow-[3px_3px_0px_#000]">
+                    <div className="bg-[#f0fafa] border-b-2 border-black px-3 py-2">
+                      <p className="text-xs font-black text-black uppercase">
+                        Example {i + 1}
+                      </p>
+                    </div>
+                    <div className="p-3 space-y-2 bg-white">
+                      <div>
+                        <p className="text-xs text-black/40 font-bold mb-1">
+                          Input:
+                        </p>
+                        <pre className="text-xs text-green-700 font-mono bg-green-50 border border-green-200 rounded-lg p-2 whitespace-pre-wrap">
+                          {ex.input}
+                        </pre>
+                      </div>
+                      <div>
+                        <p className="text-xs text-black/40 font-bold mb-1">
+                          Output:
+                        </p>
+                        <pre className="text-xs text-blue-700 font-mono bg-blue-50 border border-blue-200 rounded-lg p-2 whitespace-pre-wrap">
+                          {ex.output}
+                        </pre>
+                      </div>
+                      {ex.explanation && (
+                        <p className="text-xs text-black/50 italic">
+                          {ex.explanation}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div className="text-xs text-black/40 font-bold flex items-center gap-3 pt-1">
+                  <span>{problem.sampleTestCases?.length || 0} sample tests visible</span>
+                  <span>·</span>
+                  <span>{problem.totalTestCases} total test cases</span>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "results" && (
+              <div className="p-4 space-y-3">
+                {!submissionResult ? (
+                  <div className="text-center text-black/30 text-sm py-12 font-bold">
+                    Submit to see results
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      className={`rounded-xl p-4 border-2 border-black shadow-[3px_3px_0px_#000] ${
+                        submissionResult.status === "AC" ?
+                          "bg-green-100"
+                        : "bg-red-100"
+                      }`}>
+                      <div className="flex items-center gap-3">
+                        {submissionResult.status === "AC" ?
+                          <CheckCircle className="text-green-600" size={24} />
+                        : <XCircle className="text-red-500" size={24} />}
+                        <div>
+                          <p
+                            className={`font-black text-lg ${
+                              submissionResult.status === "AC" ?
+                                "text-green-700"
+                              : "text-red-600"
+                            }`}>
+                            {submissionResult.status === "AC" ?
+                              "Accepted!"
+                            : submissionResult.status === "WA" ?
+                              "Wrong Answer"
+                            : submissionResult.status === "RE" ?
+                              "Runtime Error"
+                            : submissionResult.status === "CE" ?
+                              "Compile Error"
+                            : submissionResult.status}
+                          </p>
+                          <p className="text-sm text-black/60 font-bold">
+                            {submissionResult.passed}/{submissionResult.total} passed
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {submissionResult.errorMessage && (
+                      <div className="bg-red-50 border-2 border-red-300 rounded-xl p-3 shadow-[2px_2px_0px_#000]">
+                        <p className="text-xs font-black text-red-500 mb-1">
+                          Error:
+                        </p>
+                        <pre className="text-xs text-black/70 whitespace-pre-wrap font-mono">
+                          {submissionResult.errorMessage}
+                        </pre>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      {submissionResult.results?.map((r, i) => (
+                        <div
+                          key={i}
+                          className={`rounded-xl border-2 border-black p-3 shadow-[2px_2px_0px_#000] ${
+                            r.passed ? "bg-green-50" : "bg-red-50"
+                          }`}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-black text-black/50">
+                              {r.isPublic ?
+                                `Test Case ${r.testCase}`
+                              : `Hidden Test ${r.testCase}`}
+                            </span>
+                            <span
+                              className={`text-xs font-black px-2 py-0.5 rounded-lg border border-black ${
+                                r.passed ?
+                                  "bg-green-200 text-green-700"
+                                : "bg-red-200 text-red-600"
+                              }`}>
+                              {r.passed ? "PASS ✓" : "FAIL ✗"}
+                            </span>
+                          </div>
+                          {r.isPublic && (
+                            <div className="space-y-1">
+                              <div>
+                                <span className="text-xs text-black/40 font-bold">
+                                  In:{" "}
+                                </span>
+                                <code className="text-xs font-mono text-black">
+                                  {r.input}
+                                </code>
+                              </div>
+                              <div>
+                                <span className="text-xs text-black/40 font-bold">
+                                  Expected:{" "}
+                                </span>
+                                <code className="text-xs font-mono text-green-700">
+                                  {r.expectedOutput}
+                                </code>
+                              </div>
+                              {!r.passed && (
+                                <div>
+                                  <span className="text-xs text-black/40 font-bold">
+                                    Got:{" "}
+                                  </span>
+                                  <code className="text-xs font-mono text-red-600">
+                                    {r.actualOutput}
+                                  </code>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {!r.isPublic && (
+                            <p className="text-xs text-black/40 italic">
+                              {r.actualOutput}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {opponentStatus && (
+                      <div className="bg-[#f0fafa] border-2 border-black rounded-xl p-3 shadow-[2px_2px_0px_#000]">
+                        <p className="text-xs font-black text-black/50 uppercase tracking-wider mb-1">
+                          Opponent
+                        </p>
+                        <p
+                          className={`text-sm font-black ${
+                            opponentStatus.status === "AC" ?
+                              "text-red-500"
+                            : "text-black"
+                          }`}>
+                          {opponentStatus.status === "AC" ?
+                            `⚡ Solved! (${opponentStatus.passed}/${opponentStatus.total})`
+                          : `${opponentStatus.passed}/${opponentStatus.total} passed`}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {activeTab === "output" && (
+              <div className="p-4 space-y-3">
+                <div>
+                  <label className="text-xs font-black text-black uppercase tracking-widest mb-1.5 block">
+                    Custom Input
+                  </label>
+                  <textarea
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    placeholder="Enter input here..."
+                    rows={4}
+                    className="w-full bg-[#f0fafa] border-2 border-black rounded-xl p-3 text-sm text-black font-mono placeholder-black/25 focus:outline-none focus:border-[rgb(238,11,22)] resize-none shadow-[2px_2px_0px_#000]"
+                  />
+                </div>
+                {runResult && (
+                  <div>
+                    <label className="text-xs font-black text-black uppercase tracking-widest mb-1.5 block">
+                      Output
+                    </label>
+                    <pre
+                      className={`border-2 border-black rounded-xl p-3 text-xs font-mono whitespace-pre-wrap shadow-[2px_2px_0px_#000] ${
+                        runResult.error ?
+                          "bg-red-50 text-red-600"
+                        : "bg-[#f0fafa] text-green-700"
+                      }`}>
+                      {runResult.output || "(no output)"}
+                    </pre>
+                    {runResult.cpuTime && (
+                      <p className="text-xs text-black/40 font-bold mt-1">
+                        CPU: {runResult.cpuTime}s
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* RIGHT: Code Editor - same as before */}
+        {/* RIGHT: Code Editor */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* ... keep existing editor code ... */}
+          <div className="h-11 border-b-2 border-black bg-[#f0fafa] flex items-center px-4 gap-3 shrink-0">
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="bg-white border-2 border-black text-black text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[rgb(238,11,22)] cursor-pointer font-bold shadow-[2px_2px_0px_#000]">
+              {LANGUAGE_OPTIONS.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+            <div className="flex-1" />
+            <button
+              onClick={handleRun}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-black text-black font-black text-xs uppercase tracking-wider hover:bg-[rgb(238,11,22)] hover:text-white transition-all shadow-[2px_2px_0px_#000]">
+              <Play size={13} /> Run
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || myAC}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[rgb(238,11,22)] hover:bg-[rgb(218,8,20)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[1px_1px_0px_#000] transition-all">
+              {isSubmitting ?
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Judging...
+                </>
+              : myAC ?
+                <>
+                  <CheckCircle size={13} /> Accepted!
+                </>
+              : <>
+                  <Send size={13} /> Submit
+                </>
+              }
+            </button>
+          </div>
+
+          {/* Monaco Editor */}
+          <div className="flex-1 overflow-hidden">
+            <Editor
+              height="100%"
+              language={language}
+              value={code}
+              onChange={(val) => setCode(val || "")}
+              onMount={handleEditorMount}
+              theme="vs-dark"
+              options={{
+                fontSize: 14,
+                fontFamily: "JetBrains Mono, Fira Code, monospace",
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                padding: { top: 16, bottom: 16 },
+                lineNumbers: "on",
+                wordWrap: "on",
+                tabSize: 2,
+                automaticLayout: true,
+                contextmenu: false,
+                find: { addExtraSpaceOnTop: false },
+                suggestOnTriggerCharacters: false,
+                quickSuggestions: false,
+                parameterHints: { enabled: false },
+                hover: { enabled: false },
+              }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Battle Result Modal & Disconnect banner - same as before */}
+      {/* Battle Result Modal */}
       <AnimatePresence>
         {battleResult && (
           <BattleResultModal
@@ -880,6 +1204,7 @@ export default function BattlePage() {
         )}
       </AnimatePresence>
 
+      {/* Disconnect banner */}
       <AnimatePresence>
         {opponentDisconnected && !battleResult && (
           <motion.div
