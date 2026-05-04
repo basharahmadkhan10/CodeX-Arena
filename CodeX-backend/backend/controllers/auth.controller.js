@@ -45,52 +45,56 @@ export const register = async (req, res, next) => {
   }
 };
 
+// auth.controller.js - Make sure this is exactly correct
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     
+    console.log("Login attempt:", { email, passwordProvided: !!password });
+    
     if (!email || !password) {
+      console.log("Missing email or password");
       return res.status(400).json({ success: false, message: "Email and password are required" });
     }
 
+    // Find user by email (case insensitive)
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || !(await user.comparePassword(password))) {
+    
+    if (!user) {
+      console.log("User not found:", email);
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+    
+    // Check password
+    const isPasswordValid = await user.comparePassword(password);
+    console.log("Password valid:", isPasswordValid);
+    
+    if (!isPasswordValid) {
+      console.log("Invalid password for user:", email);
       return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
 
-    if (user.currentBattleId) {
-      const staleBattle = await Battle.findById(user.currentBattleId);
-      if (!staleBattle || staleBattle.status !== "active" || 
-          (staleBattle.startedAt && Date.now() - new Date(staleBattle.startedAt) > 60 * 60 * 1000)) {
-        user.currentBattleId = null;
-        await user.save();
-        
-        if (staleBattle && staleBattle.status === "active") {
-          staleBattle.status = "cancelled";
-          staleBattle.endReason = "disconnect_timeout";
-          await staleBattle.save();
-        }
-      }
-    }
-
+    // Generate token
     const token = signToken(user._id);
+    console.log("Token generated successfully for:", user.username);
 
-    // Set cookie for web browsers
+    // Set cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined
     });
 
-    // Return token in response body for frontend to store
-    res.json({ 
+    // Return success response with token
+    return res.json({ 
       success: true, 
-      token: token, 
+      token: token,  // CRITICAL: Must send token in response
       user: user.toSafeObject() 
     });
+    
   } catch (err) {
+    console.error("Login error:", err);
     next(err);
   }
 };
