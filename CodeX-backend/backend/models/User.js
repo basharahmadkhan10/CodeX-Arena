@@ -1,5 +1,3 @@
-/** @format */
-
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
@@ -57,10 +55,8 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// ── Indexes ───────────────────────────────────────────────────────────────────
-// username and email are already indexed via unique:true above
-userSchema.index({ currentBattleId: 1 }); // matchmaking:join active battle check
-userSchema.index({ rating: -1 }); // leaderboard sort
+userSchema.index({ currentBattleId: 1 }); 
+userSchema.index({ rating: -1 }); 
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
