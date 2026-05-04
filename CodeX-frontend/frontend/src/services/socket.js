@@ -1,23 +1,24 @@
+// src/services/socket.js
 import { io } from "socket.io-client";
 
 let socket = null;
 let isConnecting = false;
 let connectionPromise = null;
+let heartbeatInterval = null;
 
 export const connectSocket = (token) => {
   if (socket?.connected) {
-    console.log("Using existing socket connection");
+    console.log("✅ Using existing socket connection");
     return Promise.resolve(socket);
   }
   
-  // If already connecting, wait
   if (isConnecting && connectionPromise) {
-    console.log(" Socket connection in progress...");
+    console.log("⏳ Socket connection in progress...");
     return connectionPromise;
   }
   
   if (!token) {
-    console.error("No token provided for socket connection");
+    console.error("❌ No token provided for socket connection");
     return Promise.reject(new Error("No authentication token"));
   }
   
@@ -31,18 +32,14 @@ export const connectSocket = (token) => {
       transports: ["websocket", "polling"],
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 3,
+      reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      // Send token via auth (your backend expects this)
-      auth: {
-        token: token
-      },
-      // Also try headers
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      auth: { token },
       transportOptions: {
         polling: {
-          extraHeaders: {
-            'Authorization': `Bearer ${token}`
-          }
+          extraHeaders: { 'Authorization': `Bearer ${token}` }
         }
       }
     });
@@ -53,12 +50,21 @@ export const connectSocket = (token) => {
         isConnecting = false;
         reject(new Error("Connection timeout"));
       }
-    }, 10000);
+    }, 15000);
     
     socket.on("connect", () => {
       clearTimeout(timeout);
       console.log("✅ Socket connected, ID:", socket.id);
       isConnecting = false;
+      
+      // Start heartbeat
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      heartbeatInterval = setInterval(() => {
+        if (socket?.connected) {
+          socket.emit("ping");
+        }
+      }, 25000);
+      
       resolve(socket);
     });
     
@@ -71,6 +77,22 @@ export const connectSocket = (token) => {
     
     socket.on("disconnect", (reason) => {
       console.log("🔌 Socket disconnected:", reason);
+      if (reason === "io server disconnect") {
+        setTimeout(() => {
+          if (socket && !socket.connected && token) {
+            console.log("🔄 Attempting to reconnect...");
+            connectSocket(token).catch(console.error);
+          }
+        }, 1000);
+      }
+    });
+    
+    socket.on("reconnect", (attemptNumber) => {
+      console.log(`🔄 Socket reconnected after ${attemptNumber} attempts`);
+    });
+    
+    socket.on("reconnect_failed", () => {
+      console.error("❌ Socket reconnection failed");
     });
   });
   
@@ -78,6 +100,10 @@ export const connectSocket = (token) => {
 };
 
 export const disconnectSocket = () => {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
   if (socket) {
     socket.disconnect();
     socket = null;
