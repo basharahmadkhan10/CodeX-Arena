@@ -7,11 +7,10 @@ const matchmakingHandler = (io, socket) => {
 
   socket.on("matchmaking:join", async () => {
     try {
-      // Always fetch fresh from DB
+  
       const freshUser = await User.findById(userId).select("currentBattleId username rating");
       if (!freshUser) return;
 
-      // Check if truly in an active battle
       if (freshUser.currentBattleId) {
         const activeBattle = await Battle.findOne({
           _id: freshUser.currentBattleId,
@@ -22,11 +21,9 @@ const matchmakingHandler = (io, socket) => {
           socket.emit("matchmaking:error", { message: "You are already in an active battle." });
           return;
         }
-        // Stale — clear it
+       
         await User.findByIdAndUpdate(userId, { currentBattleId: null });
       }
-
-      // Already in queue — just update socket ID and re-confirm
       if (MatchmakingService.isInQueue(userId)) {
         MatchmakingService.updateSocketId(userId, socket.id);
         socket.emit("matchmaking:queued", {
@@ -54,7 +51,6 @@ const matchmakingHandler = (io, socket) => {
   });
 
   socket.on("disconnect", () => {
-    // Pass socket.id so service can ignore stale disconnect calls
     MatchmakingService.removeFromQueue(userId, socket.id);
   });
 };
