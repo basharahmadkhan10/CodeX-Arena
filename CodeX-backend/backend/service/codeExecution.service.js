@@ -2,7 +2,7 @@
 
 import axios from "axios";
 const JUDGE0_URL = process.env.JUDGE0_URL || "https://judge0-ce.p.rapidapi.com";
-const JUDGE0_API_KEY = process.env.JUDGE0_API_KEY || null; // required for RapidAPI
+const JUDGE0_API_KEY = process.env.JUDGE0_API_KEY || null;
 
 const LANGUAGE_IDS = {
   javascript: 63, 
