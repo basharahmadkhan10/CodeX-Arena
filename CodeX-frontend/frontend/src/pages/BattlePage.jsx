@@ -120,7 +120,9 @@ function SearchingScreen({ onCancel }) {
       ))}
       <nav className="relative z-20 h-14 bg-white border-b-2 border-black flex items-center px-6 shrink-0">
         <div className="flex items-center gap-2.5">
-          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">CodeX</span>
+          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">
+            CodeX
+          </span>
           <span className="font-bold text-lg">Arena</span>
         </div>
       </nav>
