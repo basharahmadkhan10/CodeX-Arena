@@ -1,11 +1,11 @@
-/** @format */
+
 
 import mongoose from "mongoose";
 
 const testCaseSchema = new mongoose.Schema({
   input: { type: String, default: "" },
   output: { type: String, required: true },
-  isPublic: { type: Boolean, default: false }, // public = shown as example in UI
+  isPublic: { type: Boolean, default: false }, 
 });
 
 const exampleSchema = new mongoose.Schema({
@@ -17,7 +17,7 @@ const exampleSchema = new mongoose.Schema({
 const problemSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
-    slug: { type: String, required: true, unique: true }, // unique already creates an index
+    slug: { type: String, required: true, unique: true }, 
     description: { type: String, required: true },
     difficulty: {
       type: String,
@@ -28,21 +28,18 @@ const problemSchema = new mongoose.Schema(
     constraints: String,
     examples: [exampleSchema],
     testCases: [testCaseSchema],
-    timeLimit: { type: Number, default: 2000 }, // ms
-    memoryLimit: { type: Number, default: 256 }, // MB
+    timeLimit: { type: Number, default: 2000 }, 
+    memoryLimit: { type: Number, default: 256 }, 
     isActive: { type: Boolean, default: true },
     solveCount: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
 
-// ── Indexes ───────────────────────────────────────────────────────────────────
-// slug is already indexed via unique:true above
-problemSchema.index({ isActive: 1 }); // Problem.countDocuments({ isActive: true }) on every match
-problemSchema.index({ difficulty: 1, isActive: 1 }); // future: filter by difficulty
-problemSchema.index({ tags: 1 }); // future: filter by tag
+problemSchema.index({ isActive: 1 }); 
+problemSchema.index({ difficulty: 1, isActive: 1 }); 
+problemSchema.index({ tags: 1 }); 
 
-// When returning problem to client, strip hidden test cases
 problemSchema.methods.toPublicObject = function () {
   const obj = this.toObject();
   obj.testCases = obj.testCases.filter((tc) => tc.isPublic);
