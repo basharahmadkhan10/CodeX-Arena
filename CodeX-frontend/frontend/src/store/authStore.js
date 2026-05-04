@@ -4,7 +4,7 @@ import { connectSocket, disconnectSocket } from "../services/socket";
 
 const useAuthStore = create((set, get) => ({
   user: null,
-  isLoading: false,
+  isLoading: true,
   isInitialized: false,
   
   init: async () => {
