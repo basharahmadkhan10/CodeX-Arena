@@ -8,13 +8,21 @@ const useAuthStore = create((set, get) => ({
   isInitialized: false,
   
   init: async () => {
+    const token = localStorage.getItem("dd_token");
+    if (!token) {
+      set({ isInitialized: true, isLoading: false });
+      return;
+    }
+    
     try {
       set({ isLoading: true });
       const { data } = await api.get("/auth/me");
       set({ user: data.user, isInitialized: true, isLoading: false });
-      connectSocket(); 
+      
+      await connectSocket(token);
     } catch (err) {
-      console.log("Not authenticated:", err.response?.status);
+      console.log("Auth failed:", err.response?.status);
+      localStorage.removeItem("dd_token");
       set({ user: null, isInitialized: true, isLoading: false });
     }
   },
@@ -27,8 +35,14 @@ const useAuthStore = create((set, get) => ({
         email,
         password,
       });
+      
+      // Store token from response
+      if (data.token) {
+        localStorage.setItem("dd_token", data.token);
+      }
+      
       set({ user: data.user, isLoading: false });
-      connectSocket();
+      await connectSocket(data.token);
       return { success: true };
     } catch (err) {
       set({ isLoading: false });
@@ -43,10 +57,28 @@ const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const { data } = await api.post("/auth/login", { email, password });
+      
+      // ✅ Store token from response body
+      if (data.token) {
+        localStorage.setItem("dd_token", data.token);
+        console.log("✅ Token stored in localStorage");
+      } else {
+        console.warn("No token in response");
+      }
+      
       set({ user: data.user, isLoading: false });
-      connectSocket();
+      
+      // Connect socket after login
+      try {
+        await connectSocket(data.token);
+        console.log("✅ Socket connected");
+      } catch (socketError) {
+        console.warn("Socket connection failed:", socketError.message);
+      }
+      
       return { success: true };
     } catch (err) {
+      console.error("Login error:", err.response?.data);
       set({ isLoading: false });
       return {
         success: false,
@@ -59,13 +91,18 @@ const useAuthStore = create((set, get) => ({
     try {
       await api.post("/auth/logout");
     } catch (err) {
-      console.log("Logout error:", err);
+      console.log("Logout error:", err.message);
     }
+    
+    localStorage.removeItem("dd_token");
     disconnectSocket();
-    set({ user: null, isInitialized: false });
+    set({ user: null, isInitialized: false, isLoading: false });
+    window.location.href = "/login";
   },
 
-  updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
+  updateUser: (updates) => set((s) => ({ 
+    user: s.user ? { ...s.user, ...updates } : null 
+  })),
 }));
 
 export default useAuthStore;
