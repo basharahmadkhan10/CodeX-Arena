@@ -23,7 +23,6 @@ export const submitSolution = async (battleId, userId, code, language, io) => {
   participant.result = { passed, total, status, errorMessage: errorMessage || null };
   await battle.save();
 
-  // Broadcast submission update to room (opponent sees it too)
   io.to(battle.roomId).emit("battle:submission_update", { userId, status, passed, total, language });
 
   if (status === "AC") {
