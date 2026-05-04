@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import useAuthStore from "./store/authStore";
@@ -7,17 +7,25 @@ import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/DashboardPage";
 import BattlePage from "./pages/BattlePage";
 import ModesPage from "./pages/ModesPage";
-import RoomBattlePage from "./pages/RoomBattlePage"; // ← ADD
-import RoomArenaPage from "./pages/RoomArenaPage"; // ← already there
+import RoomBattlePage from "./pages/RoomBattlePage";
+import RoomArenaPage from "./pages/RoomArenaPage";
 
 function SocketEventManager() {
-  useSocketEvents();
+  const { user, isInitialized } = useAuthStore();
+  
+  if (!isInitialized || !user) {
+    return null; 
+  }
+  
+  useSocketEvents(); 
   return null;
 }
 
 function RequireAuth({ children }) {
-  const { user, isInitialized } = useAuthStore();
-  if (!isInitialized)
+  const { user, isInitialized, isLoading } = useAuthStore();
+  
+  // Show loading while checking auth
+  if (!isInitialized || isLoading) {
     return (
       <div className="min-h-screen bg-[rgb(255,1,1)] flex items-center justify-center">
         <div className="text-center">
@@ -26,22 +34,47 @@ function RequireAuth({ children }) {
         </div>
       </div>
     );
-  if (!user) return <Navigate to="/login" replace />;
+  }
+  
+  // Only redirect if definitely not authenticated
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
   return children;
 }
 
 export default function App() {
-  const { init, user } = useAuthStore();
+  const { init, user, isInitialized, isLoading } = useAuthStore();
+  const [initAttempted, setInitAttempted] = useState(false);
 
   useEffect(() => {
-    init();
-  }, []);
+    // Only initialize once
+    if (!initAttempted) {
+      setInitAttempted(true);
+      init().catch(console.error);
+    }
+  }, [init, initAttempted]);
+
+  // Don't render routes until we've tried to initialize
+  if (!initAttempted || isLoading) {
+    return (
+      <div className="min-h-screen bg-[rgb(255,1,1)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-black/20 border-t-black rounded-full animate-spin mx-auto mb-3 font-bold" />
+          <p className="text-white/90 text-lg font-bold">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter
       future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
     >
-      {user && <SocketEventManager />}
+      {/* ✅ Only render socket manager when user exists AND init is complete */}
+      {user && isInitialized && <SocketEventManager />}
+      
       <Toaster
         position="top-right"
         toastOptions={{
@@ -58,6 +91,7 @@ export default function App() {
           error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },
         }}
       />
+      
       <Routes>
         <Route path="/login" element={<AuthPage />} />
 
@@ -79,7 +113,6 @@ export default function App() {
           }
         />
 
-        {/* ── 1v1 ── */}
         <Route
           path="/battle/1v1"
           element={
@@ -89,7 +122,6 @@ export default function App() {
           }
         />
 
-        {/* ── Room Battle: lobby → arena ── */}
         <Route
           path="/battle/room"
           element={
@@ -98,6 +130,7 @@ export default function App() {
             </RequireAuth>
           }
         />
+        
         <Route
           path="/battle/room/arena"
           element={
