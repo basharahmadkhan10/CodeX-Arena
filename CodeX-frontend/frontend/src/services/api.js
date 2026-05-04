@@ -1,3 +1,4 @@
+// Update your api.js
 import axios from "axios";
 
 const api = axios.create({
@@ -6,26 +7,23 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  console.log(` ${config.method?.toUpperCase()} ${config.url}`);
+  const token = localStorage.getItem("dd_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  console.log(`📡 ${config.method?.toUpperCase()} ${config.url}`);
   return config;
 });
 
-let isRefreshing = false;
-
 api.interceptors.response.use(
   (res) => res,
-  async (err) => {
-    const originalRequest = err.config;
-
-    if (err.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      const isAuthEndpoint = originalRequest.url?.includes('/auth/');
-      
-      if (!isAuthEndpoint && !window.location.pathname.includes('/login')) {
+  (err) => {
+    if (err.response?.status === 401) {
+      if (!window.location.pathname.includes('/login')) {
+        localStorage.removeItem("dd_token");
         window.location.href = "/login";
       }
     }
-    
     return Promise.reject(err);
   }
 );
