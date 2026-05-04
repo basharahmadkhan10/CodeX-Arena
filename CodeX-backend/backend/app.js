@@ -14,7 +14,6 @@ import MatchmakingService from "./service/matchmaking.service.js";
 const app = express();
 const server = http.createServer(app);
 
-// Update CORS for both HTTP and Socket
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:3000", "http://127.0.0.1:3000", "https://codex-arena.onrender.com"],
@@ -35,7 +34,6 @@ app.use(
 );
 app.use(compression());
 
-// Update HTTP CORS
 app.use(
   cors({
     origin: ["http://localhost:3000", "http://127.0.0.1:3000", "https://codex-arena.onrender.com"],
