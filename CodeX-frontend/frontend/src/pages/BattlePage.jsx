@@ -17,6 +17,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { getSocket } from "../services/socket";
 import useBattleStore from "../store/battleStore";
 import useAuthStore from "../store/authStore";
 import BattleResultModal from "../components/battle/BattleResultModal";
