@@ -1,10 +1,4 @@
-/**
- * 100+ problems — Easy & Medium only.
- * All use pure stdin → stdout (CodeChef style).
- * Test cases verified correct.
- */
 
-// Helper to build a problem
 const p = (title, slug, difficulty, tags, description, constraints, examples, testCases) => ({
   title, slug, difficulty, tags, description, constraints, examples,
   testCases: testCases.map(([input, output, isPublic = false]) => ({ input, output, isPublic })),
@@ -807,7 +801,6 @@ const PROBLEMS_SEED = [
 
 ];
 
-// Deduplicate by slug
 const seen = new Set();
 const unique = [];
 for (const prob of PROBLEMS_SEED) {
