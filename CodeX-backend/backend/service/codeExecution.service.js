@@ -1,19 +1,15 @@
-/** @format */
+
 
 import axios from "axios";
-
-// Judge0 configuration — set JUDGE0_URL and optionally JUDGE0_API_KEY in your .env
-// Self-host option: docker-compose up -d judge0 → set JUDGE0_URL=http://localhost:2358
-// RapidAPI free tier: https://rapidapi.com/judge0-official/api/judge0-ce
 const JUDGE0_URL = process.env.JUDGE0_URL || "https://judge0-ce.p.rapidapi.com";
 const JUDGE0_API_KEY = process.env.JUDGE0_API_KEY || null; // required for RapidAPI
 
 const LANGUAGE_IDS = {
-  javascript: 63, // Node.js 12.14.0
-  python: 71, // Python 3.8.1
-  java: 62, // Java OpenJDK 13.0.1
-  cpp: 54, // C++ (GCC 9.2.0)
-  c: 50, // C (GCC 9.2.0)
+  javascript: 63, 
+  python: 71, 
+  java: 62, 
+  cpp: 54, 
+  c: 50, 
 };
 
 export const SUPPORTED_LANGUAGES = Object.keys(LANGUAGE_IDS);
@@ -32,9 +28,6 @@ function getHeaders() {
   return headers;
 }
 
-/**
- * Submit code to Judge0 and poll for result.
- */
 export const executeCode = async (code, language, stdin = "") => {
   const languageId = LANGUAGE_IDS[language];
   if (!languageId) throw new Error(`Unsupported language: ${language}`);
@@ -42,7 +35,6 @@ export const executeCode = async (code, language, stdin = "") => {
   const cleanStdin = normalize(stdin.replace(/\\n/g, "\n"));
 
   try {
-    // Submit
     const submitRes = await axios.post(
       `${JUDGE0_URL}/submissions?base64_encoded=false&wait=false`,
       {
@@ -61,8 +53,6 @@ export const executeCode = async (code, language, stdin = "") => {
 
     const token = submitRes.data.token;
     if (!token) throw new Error("No submission token received");
-
-    // Poll for result (max 10 attempts, 1s apart)
     for (let i = 0; i < 10; i++) {
       await sleep(1000);
 
@@ -76,9 +66,7 @@ export const executeCode = async (code, language, stdin = "") => {
 
       const data = resultRes.data;
       const statusId = data.status?.id;
-
-      // Status IDs: 1=In Queue, 2=Processing, 3=AC, 4=WA, 5=TLE, 6=CE, 7-12=RE/other
-      if (statusId <= 2) continue; // still running
+      if (statusId <= 2) continue; 
 
       const stdout = normalize(data.stdout || "");
       const stderr = normalize(data.stderr || data.compile_output || "");
@@ -98,10 +86,6 @@ export const executeCode = async (code, language, stdin = "") => {
   }
 };
 
-/**
- * Run code against all test cases.
- * Returns { passed, total, status, results, errorMessage }
- */
 export const runTestCases = async (code, language, testCases) => {
   const results = [];
   let passed = 0;
