@@ -21,12 +21,12 @@ const seedProblems = async () => {
         const exists = await Problem.findOne({ slug: prob.slug });
         if (!exists) { await Problem.create(prob); created++; }
       }
-      console.log(`✅ Seeded ${created} problems`);
+      console.log(`Seeded ${created} problems`);
     } else {
-      console.log(`✅ ${count} problems in DB`);
+      console.log(` ${count} problems in DB`);
     }
   } catch (err) {
-    console.error("❌ Seed error:", err.message);
+    console.error("Seed error:", err.message);
   }
 };
 
@@ -34,8 +34,8 @@ await connectDB();
 await seedProblems();
 
 server.listen(PORT, () => {
-  console.log(`🚀 Server on port ${PORT} [${NODE_ENV}]`);
-  console.log(`📡 Client: ${process.env.CLIENT_URL || "http://localhost:3000"}`);
+  console.log(`Server on port ${PORT} [${NODE_ENV}]`);
+  console.log(`Client: ${process.env.CLIENT_URL || "http://localhost:3000"}`);
 });
 
 process.on("unhandledRejection", (err) => {
