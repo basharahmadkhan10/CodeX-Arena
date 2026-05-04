@@ -62,7 +62,7 @@ const battleSchema = new mongoose.Schema(
     },
     endReason: {
       type: String,
-      enum: ["solved", "timeout", "forfeit", "disconnect", "all_solved", null],
+      enum: ["solved", "timeout", "forfeit", "disconnect", "all_solved", "cancelled" null],
       default: null,
     },
     startedAt: Date,
