@@ -45,7 +45,7 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
+    
     if (!email || !password) {
       return res.status(400).json({ success: false, message: "Email and password are required" });
     }
@@ -53,6 +53,21 @@ export const login = async (req, res, next) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+
+    if (user.currentBattleId) {
+      const staleBattle = await Battle.findById(user.currentBattleId);
+      if (!staleBattle || staleBattle.status !== "active" || 
+          (staleBattle.startedAt && Date.now() - new Date(staleBattle.startedAt) > 60 * 60 * 1000)) {
+        user.currentBattleId = null;
+        await user.save();
+        
+        if (staleBattle && staleBattle.status === "active") {
+          staleBattle.status = "cancelled";
+          staleBattle.endReason = "disconnect_timeout";
+          await staleBattle.save();
+        }
+      }
     }
 
     const token = signToken(user._id);
