@@ -21,12 +21,13 @@ const useSocketEvents = () => {
         queueStatus: "searching",
         queuePosition: position,
       });
+      // 5-minute timeout fallback
       setTimeout(() => {
         if (useBattleStore.getState().queueStatus === "searching") {
           useBattleStore.getState().leaveQueue();
           toast.error("No opponent found. Try again.");
         }
-      }, 300000); // 5 min timeout
+      }, 300000);
     };
 
     const onMatchmakingError = ({ message }) => {
@@ -36,18 +37,23 @@ const useSocketEvents = () => {
 
     // ── Battle matched ───────────────────────────────────────────
     const onMatched = (data) => {
+      console.log("⚔️ battle:matched received", data.roomId);
+
+      // IMPORTANT: Do NOT emit battle:join_room here.
+      // The server already added both sockets to the room in _createBattle.
+      // Emitting join_room hits a non-existent handler (causes the 404 error)
+      // and will break after a reconnect since the new socket ID is unknown.
+
       useBattleStore.setState({
         queueStatus: "matched",
         battle: data,
+        submissionResult: null,
+        opponentStatus: null,
+        opponentSubmitting: false,
+        opponentDisconnected: false,
+        battleResult: null,
       });
 
-      // Join the battle room
-      socket.emit("battle:join_room", {
-        roomId: data.roomId,
-        battleId: data.battleId,
-      });
-
-      // Start countdown
       useBattleStore.getState().startTimer(data.timeLimit);
     };
 
@@ -66,11 +72,14 @@ const useSocketEvents = () => {
     };
 
     const onSubmissionUpdate = (data) => {
-      // This is opponent's result
       const battle = useBattleStore.getState().battle;
       if (data.userId !== battle?.you?.userId) {
         useBattleStore.setState({
-          opponentStatus: { status: data.status, passed: data.passed, total: data.total },
+          opponentStatus: {
+            status: data.status,
+            passed: data.passed,
+            total: data.total,
+          },
           opponentSubmitting: false,
         });
       }
@@ -89,7 +98,6 @@ const useSocketEvents = () => {
         queueStatus: "idle",
       });
 
-      // Update user rating
       const myId = useAuthStore.getState().user?._id;
       const me = result.participants?.find((p) => p.userId === myId);
       if (me && me.ratingChange !== undefined) {
@@ -113,6 +121,22 @@ const useSocketEvents = () => {
       toast.error(message || "Submission failed. Try again.");
     };
 
+    // ── Reconnect: rejoin the battle room ────────────────────────
+    // After a socket reconnect, the socket loses its room membership.
+    // We need to rejoin so we keep receiving battle events.
+    const onReconnect = () => {
+      const { battle } = useBattleStore.getState();
+      if (battle?.roomId) {
+        console.log("🔄 Rejoining battle room after reconnect:", battle.roomId);
+        // Use the correct event name your server handles
+        socket.emit("battle:rejoin", {
+          roomId: battle.roomId,
+          battleId: battle.battleId,
+        });
+        toast("Reconnected to battle!", { icon: "🔄", duration: 2000 });
+      }
+    };
+
     socket.on("matchmaking:queue_size", onQueueSize);
     socket.on("matchmaking:queued", onQueued);
     socket.on("matchmaking:error", onMatchmakingError);
@@ -125,6 +149,7 @@ const useSocketEvents = () => {
     socket.on("battle:ended", onBattleEnded);
     socket.on("battle:opponent_disconnected", onOpponentDisconnected);
     socket.on("battle:error", onBattleError);
+    socket.on("reconnect", onReconnect);
 
     return () => {
       socket.off("matchmaking:queue_size", onQueueSize);
@@ -139,6 +164,7 @@ const useSocketEvents = () => {
       socket.off("battle:ended", onBattleEnded);
       socket.off("battle:opponent_disconnected", onOpponentDisconnected);
       socket.off("battle:error", onBattleError);
+      socket.off("reconnect", onReconnect);
     };
   }, []);
 };
