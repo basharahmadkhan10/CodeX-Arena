@@ -1,76 +1,62 @@
-import { create } from "zustand";
-import api from "../services/api";
-import { connectSocket, disconnectSocket } from "../services/socket";
+
+import { create } from 'zustand';
+import axios from 'axios';
+
+axios.defaults.withCredentials = true;
 
 const useAuthStore = create((set, get) => ({
   user: null,
-  token: null,
   isLoading: false,
-  isInitialized: false,
-  init: async () => {
+
+  login: async (email, password) => {
+    set({ isLoading: true });
     try {
-      const token = localStorage.getItem("dd_token");
-      if (!token) {
-        set({ user: null, isInitialized: true });
-        return;
-      }
-      const { data } = await api.get("/auth/me"); // or whatever your verify endpoint is
-      set({ user: data.user, token, isInitialized: true });
-      connectSocket(token);
-    } catch {
-      localStorage.removeItem("dd_token"); // token expired/invalid, clean it up
-      set({ user: null, token: null, isInitialized: true });
+      const res = await axios.post('/api/v1/auth/login', { email, password });
+      set({ user: res.data.user, isLoading: false });
+      return { success: true };
+    } catch (error) {
+      set({ isLoading: false });
+      return { success: false, message: error.response?.data?.message };
     }
   },
 
   register: async (username, email, password) => {
     set({ isLoading: true });
     try {
-      const { data } = await api.post("/auth/register", {
-        username,
-        email,
-        password,
-      });
-      localStorage.setItem("dd_token", data.token);
-      set({ user: data.user, token: data.token, isLoading: false });
-      connectSocket(data.token);
+      const res = await axios.post('/api/v1/auth/register', { username, email, password });
+   
+      
+      set({ user: res.data.user, isLoading: false });
       return { success: true };
-    } catch (err) {
+    } catch (error) {
       set({ isLoading: false });
-      return {
-        success: false,
-        message: err.response?.data?.message || "Registration failed",
-      };
-    }
-  },
-
-  login: async (email, password) => {
-    set({ isLoading: true });
-    try {
-      const { data } = await api.post("/auth/login", { email, password });
-      localStorage.setItem("dd_token", data.token);
-      set({ user: data.user, token: data.token, isLoading: false });
-      connectSocket(data.token);
-      return { success: true };
-    } catch (err) {
-      set({ isLoading: false });
-      return {
-        success: false,
-        message: err.response?.data?.message || "Login failed",
-      };
+      return { success: false, message: error.response?.data?.message };
     }
   },
 
   logout: async () => {
     try {
-      await api.post("/auth/logout");
-    } catch {}
-    localStorage.removeItem("dd_token");
-    disconnectSocket();
-    set({ user: null, token: null, isInitialized: false });
+      await axios.post('/api/v1/auth/logout', {}, { withCredentials: true });
+      
+      set({ user: null });
+      return { success: true };
+    } catch (error) {
+      return { success: false };
+    }
   },
 
-  updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
+  checkAuth: async () => {
+    set({ isLoading: true });
+    try {
+      const res = await axios.get('/api/v1/auth/me', { withCredentials: true });
+      set({ user: res.data.user, isLoading: false });
+      return { success: true };
+    } catch (error) {
+      set({ user: null, isLoading: false });
+      return { success: false };
+    }
+  },
+
 }));
 
 export default useAuthStore;
