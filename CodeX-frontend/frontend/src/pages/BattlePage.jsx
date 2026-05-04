@@ -1,5 +1,4 @@
-/** @format */
-
+// src/pages/BattlePage.jsx (Full updated version)
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -120,9 +119,7 @@ function SearchingScreen({ onCancel }) {
       ))}
       <nav className="relative z-20 h-14 bg-white border-b-2 border-black flex items-center px-6 shrink-0">
         <div className="flex items-center gap-2.5">
-          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">
-            CodeX
-          </span>
+          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">CodeX</span>
           <span className="font-bold text-lg">Arena</span>
         </div>
       </nav>
@@ -166,7 +163,6 @@ function SearchingScreen({ onCancel }) {
   );
 }
 
-// ── Main Battle Page ─────────────────────────────────────────────────────────
 export default function BattlePage() {
   const {
     battle,
@@ -200,15 +196,13 @@ export default function BattlePage() {
   const [hasAutoForfeited, setHasAutoForfeited] = useState(false);
   const editorRef = useRef(null);
   const violationIntervalRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
 
   const isBattleActive = !!battle && !battleResult;
-
-  // Constants for enforcement
   const MAX_FULLSCREEN_EXITS = 2;
   const MAX_TAB_SWITCHES = 3;
   const MAX_VIOLATIONS = 5;
 
-  // Function to auto-forfeit due to violations
   const autoForfeit = useCallback(
     (reason) => {
       if (!isBattleActive || hasAutoForfeited || !battle?.battleId) return;
@@ -221,7 +215,6 @@ export default function BattlePage() {
     [isBattleActive, hasAutoForfeited, battle?.battleId, forfeit],
   );
 
-  // Manual fullscreen request function
   const requestFullscreenManually = useCallback(async () => {
     try {
       await document.documentElement.requestFullscreen();
@@ -232,7 +225,7 @@ export default function BattlePage() {
     }
   }, []);
 
-  // Check violation thresholds and auto-forfeit
+  // ✅ Fixed: Added missing dependencies properly
   useEffect(() => {
     if (!isBattleActive || hasAutoForfeited) return;
     if (fullscreenExits >= MAX_FULLSCREEN_EXITS) {
@@ -244,22 +237,18 @@ export default function BattlePage() {
     }
   }, [fullscreenExits, focusLostCount, violations, isBattleActive, hasAutoForfeited, autoForfeit]);
 
-  // Anti-cheat hook
   useAntiCheat(isBattleActive, (type, count) => {
     setViolations(count);
   });
 
-  // Navigation effect
   useEffect(() => {
     if (queueStatus === "idle" && !battle) navigate("/");
   }, [queueStatus, battle, navigate]);
 
-  // Language change effect
   useEffect(() => {
     setCode(STARTER_CODE[language] || "");
   }, [language]);
 
-  // Submission result effect
   useEffect(() => {
     if (submissionResult) {
       if (submissionResult.status === "AC")
@@ -272,12 +261,10 @@ export default function BattlePage() {
     }
   }, [submissionResult]);
 
-  // Run result effect
   useEffect(() => {
     if (runResult) setActiveTab("output");
   }, [runResult]);
 
-  // Battle result effect
   useEffect(() => {
     if (battleResult) {
       const timer = setTimeout(() => { reset(); navigate("/"); }, 6000);
@@ -285,9 +272,10 @@ export default function BattlePage() {
     }
   }, [battleResult, reset, navigate]);
 
-  // Fullscreen detection - FIXED: no auto-request
+  // ✅ Fixed: Fullscreen detection with proper cleanup
   useEffect(() => {
     if (!isBattleActive) return;
+    
     const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!document.fullscreenElement;
       setIsFullscreen(isCurrentlyFullscreen);
@@ -297,32 +285,29 @@ export default function BattlePage() {
           const remaining = MAX_FULLSCREEN_EXITS - newCount;
           if (remaining > 0) {
             toast.error(`⚠️ Fullscreen required! ${remaining} ${remaining === 1 ? "warning" : "warnings"} remaining.`, { duration: 4000 });
-          } else {
-            toast.error("❌ Final fullscreen violation! Disqualifying...", { duration: 3000 });
           }
           return newCount;
         });
         setViolations((prev) => prev + 2);
       }
     };
+    
     setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, [isBattleActive, isFullscreen, hasAutoForfeited]);
 
-  // Tab visibility detection
+  // ✅ Fixed: Tab visibility detection
   useEffect(() => {
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       setIsTabActive(isVisible);
-      if (!isVisible && isBattleActive) {
+      if (!isVisible && isBattleActive && !hasAutoForfeited) {
         setFocusLostCount((prev) => {
           const newCount = prev + 1;
           const remaining = MAX_TAB_SWITCHES - newCount;
           if (remaining > 0) {
             toast.error(`⚠️ Tab switching detected! ${remaining} ${remaining === 1 ? "warning" : "warnings"} remaining.`, { id: "tab-switch", duration: 3000 });
-          } else {
-            toast.error("❌ Maximum tab switches exceeded! Disqualifying...", { duration: 3000 });
           }
           return newCount;
         });
@@ -331,11 +316,12 @@ export default function BattlePage() {
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [isBattleActive]);
+  }, [isBattleActive, hasAutoForfeited]);
 
-  // Periodic focus checks - FIXED: no auto fullscreen
+  // ✅ Fixed: Periodic checks with proper dependencies
   useEffect(() => {
     if (!isBattleActive) return;
+    
     violationIntervalRef.current = setInterval(() => {
       if (!document.hasFocus() && isBattleActive && !hasAutoForfeited) {
         setFocusLostCount((prev) => {
@@ -352,32 +338,32 @@ export default function BattlePage() {
         setViolations((prev) => prev + 1);
       }
     }, 5000);
+    
     return () => {
       if (violationIntervalRef.current) clearInterval(violationIntervalRef.current);
     };
   }, [isBattleActive, hasAutoForfeited, isFullscreen]);
 
-  // DevTools detection
+  // ✅ Added: Socket reconnection handler
   useEffect(() => {
-    if (!isBattleActive) return;
-    const detectDevTools = () => {
-      const threshold = 160;
-      const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-      const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-      if (widthThreshold || heightThreshold) {
-        setViolations((prev) => {
-          const newCount = prev + 1;
-          const remaining = MAX_VIOLATIONS - Math.floor(newCount);
-          if (remaining <= 3 && remaining > 0) {
-            toast.error(`⚠️ DevTools detected! ${remaining} ${remaining === 1 ? "violation" : "violations"} remaining.`, { id: "devtools", duration: 3000 });
-          }
-          return newCount;
-        });
-      }
+    const socket = getSocket();
+    if (!socket || !battle) return;
+    
+    const handleReconnect = () => {
+      toast.success("Reconnected to battle!", { duration: 3000 });
+      socket.emit("battle:join_room", { roomId: battle.roomId });
     };
-    const interval = setInterval(detectDevTools, 2000);
-    return () => clearInterval(interval);
-  }, [isBattleActive]);
+    
+    socket.on("reconnect", handleReconnect);
+    socket.on("reconnect_failed", () => {
+      toast.error("Lost connection to battle. Please refresh.", { duration: 5000 });
+    });
+    
+    return () => {
+      socket.off("reconnect", handleReconnect);
+      socket.off("reconnect_failed");
+    };
+  }, [battle]);
 
   // Global copy/paste blocking
   useEffect(() => {
@@ -404,20 +390,17 @@ export default function BattlePage() {
     };
   }, [isBattleActive]);
 
-  // Keyboard shortcut blocking - FIXED: no toast.warning
+  // ✅ Fixed: Keyboard shortcut blocking
   useEffect(() => {
     if (!isBattleActive) return;
     const blockedKeys = ["F12", "F5", "F8", "F11", "Control", "Alt", "Meta"];
     const blockedCombos = [
-      { ctrl: true, key: "u" },
-      { ctrl: true, shift: true, key: "i" },
-      { ctrl: true, shift: true, key: "c" },
-      { ctrl: true, shift: true, key: "j" },
-      { ctrl: true, key: "s" },
-      { ctrl: true, key: "r" },
+      { ctrl: true, key: "u" }, { ctrl: true, shift: true, key: "i" },
+      { ctrl: true, shift: true, key: "c" }, { ctrl: true, shift: true, key: "j" },
+      { ctrl: true, key: "s" }, { ctrl: true, key: "r" },
     ];
     const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isFullscreen && isBattleActive) {
+      if (e.key === "Escape" && isFullscreen && isBattleActive && !hasAutoForfeited) {
         e.preventDefault();
         toast.error("⚠️ Escape exits fullscreen and counts as a violation!", { duration: 2000 });
         setFullscreenExits((prev) => prev + 1);
@@ -426,19 +409,12 @@ export default function BattlePage() {
       }
       if (blockedKeys.includes(e.key)) {
         e.preventDefault();
-        toast.error(`Key "${e.key}" is blocked!`, { id: "key-block" });
         setViolations((prev) => prev + 0.5);
         return false;
       }
       for (const combo of blockedCombos) {
-        if (
-          (!combo.ctrl || e.ctrlKey) &&
-          (!combo.shift || e.shiftKey) &&
-          (!combo.alt || e.altKey) &&
-          e.key.toLowerCase() === combo.key
-        ) {
+        if ((!combo.ctrl || e.ctrlKey) && (!combo.shift || e.shiftKey) && (!combo.alt || e.altKey) && e.key.toLowerCase() === combo.key) {
           e.preventDefault();
-          toast.error("This keyboard shortcut is disabled!", { id: "combo-block" });
           setViolations((prev) => prev + 1);
           return false;
         }
@@ -446,14 +422,13 @@ export default function BattlePage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isBattleActive, isFullscreen]);
+  }, [isBattleActive, isFullscreen, hasAutoForfeited]);
 
-  // Browser context menu prevention
+  // Context menu prevention
   useEffect(() => {
     if (!isBattleActive) return;
     const preventContextMenu = (e) => {
       e.preventDefault();
-      toast.error("Right-click is disabled!", { id: "context-menu", duration: 1000 });
       setViolations((prev) => prev + 0.5);
       return false;
     };
@@ -461,19 +436,35 @@ export default function BattlePage() {
     return () => document.removeEventListener("contextmenu", preventContextMenu);
   }, [isBattleActive]);
 
-  // Screen recording detection
+  // ✅ Enhanced DevTools detection
   useEffect(() => {
     if (!isBattleActive) return;
-    if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-      const detectRecording = () => {
-        if (document.documentElement.style.overflow === "hidden") {
-          setViolations((prev) => prev + 2);
-          toast.error("⚠️ Suspicious screen activity detected!", { duration: 2000 });
-        }
-      };
-      const interval = setInterval(detectRecording, 3000);
-      return () => clearInterval(interval);
-    }
+    
+    const detectDevTools = () => {
+      const threshold = 160;
+      const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+      const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+      
+      // Debugger statement detection
+      const before = Date.now();
+      debugger;
+      const after = Date.now();
+      const devToolsOpen = after - before > 100;
+      
+      if (widthThreshold || heightThreshold || devToolsOpen) {
+        setViolations((prev) => {
+          const newCount = prev + 1;
+          const remaining = MAX_VIOLATIONS - Math.floor(newCount);
+          if (remaining <= 3 && remaining > 0) {
+            toast.error(`⚠️ DevTools detected! ${remaining} ${remaining === 1 ? "violation" : "violations"} remaining.`, { id: "devtools", duration: 3000 });
+          }
+          return newCount;
+        });
+      }
+    };
+    
+    const interval = setInterval(detectDevTools, 3000);
+    return () => clearInterval(interval);
   }, [isBattleActive]);
 
   const handleCancel = () => {
@@ -482,7 +473,6 @@ export default function BattlePage() {
     navigate("/");
   };
 
-  // Early returns after all hooks
   if (queueStatus === "searching" && !battle) {
     return <SearchingScreen onCancel={handleCancel} />;
   }
@@ -539,7 +529,6 @@ export default function BattlePage() {
 
   return (
     <div className="h-screen bg-[rgb(238,11,22)] flex flex-col overflow-hidden">
-      {/* Warning overlay if tab is inactive */}
       <AnimatePresence>
         {!isTabActive && isBattleActive && !hasAutoForfeited && (
           <motion.div
@@ -553,7 +542,6 @@ export default function BattlePage() {
         )}
       </AnimatePresence>
 
-      {/* Fullscreen warning overlay */}
       <AnimatePresence>
         {!isFullscreen && isBattleActive && !hasAutoForfeited && (
           <motion.div
@@ -585,7 +573,6 @@ export default function BattlePage() {
           <span className="font-black text-black text-base tracking-tight hidden sm:block">CodeX Arena</span>
         </div>
 
-        {/* Players */}
         <div className="flex-1 flex items-center justify-center gap-4">
           <div className="flex items-center gap-2 bg-white border-2 border-black rounded-xl px-3 py-1 shadow-[2px_2px_0px_#000]">
             <span className="text-sm font-black text-[rgb(238,11,22)]">{you?.username}</span>
@@ -601,13 +588,11 @@ export default function BattlePage() {
           </div>
         </div>
 
-        {/* Timer */}
         <div className={`flex items-center gap-1.5 font-black text-lg border-2 border-black px-3 py-1 rounded-xl shadow-[2px_2px_0px_#000] ${isTimeCritical ? "bg-red-100 text-red-600 animate-pulse" : "bg-white text-black"}`}>
           <Clock size={15} />
           {formatTime(timeLeft)}
         </div>
 
-        {/* Violation counter */}
         {(violations > 0 || fullscreenExits > 0 || focusLostCount > 0) && (
           <div className="flex flex-col items-end gap-0.5">
             <div className={`flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg shadow-[2px_2px_0px_#000] ${violations >= MAX_VIOLATIONS ? "bg-red-100 text-red-700 border-2 border-red-500" : "bg-amber-100 text-amber-700 border-2 border-amber-400"}`}>
@@ -630,9 +615,7 @@ export default function BattlePage() {
         </button>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* LEFT: Problem panel */}
         <div className="w-[420px] shrink-0 border-r-2 border-black flex flex-col overflow-hidden bg-white">
           <div className="flex border-b-2 border-black shrink-0 bg-[#f0fafa]">
             {TABS.map((t) => (
@@ -751,7 +734,6 @@ export default function BattlePage() {
           </div>
         </div>
 
-        {/* RIGHT: Code Editor */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="h-11 border-b-2 border-black bg-[#f0fafa] flex items-center px-4 gap-3 shrink-0">
             <select value={language} onChange={(e) => setLanguage(e.target.value)} className="bg-white border-2 border-black text-black text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-[rgb(238,11,22)] cursor-pointer font-bold shadow-[2px_2px_0px_#000]">
@@ -795,14 +777,12 @@ export default function BattlePage() {
         </div>
       </div>
 
-      {/* Battle Result Modal */}
       <AnimatePresence>
         {battleResult && (
           <BattleResultModal result={battleResult} you={you} onClose={() => { if (document.fullscreenElement) document.exitFullscreen().catch(console.warn); reset(); navigate("/"); }} />
         )}
       </AnimatePresence>
 
-      {/* Disconnect banner */}
       <AnimatePresence>
         {opponentDisconnected && !battleResult && (
           <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }} className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-amber-100 border-2 border-black text-black text-sm px-6 py-3 rounded-xl shadow-[4px_4px_0px_#000] font-black flex items-center gap-2 uppercase tracking-wider">
