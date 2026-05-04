@@ -182,12 +182,64 @@ export default function BattlePage() {
   const MAX_TAB_SWITCHES = 3;
   const MAX_VIOLATIONS = 5;
 
+  // ── FIX 4: Ensure socket listeners are live ────────────────────────────────
+  useEffect(() => {
+    useBattleStore.getState().initSocketListeners();
+  }, []);
+
+  // ── FIX: Socket reconnect — rejoin battle room ────────────────────────────
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !battle) return;
+
+    const handleReconnect = () => {
+      console.log("🔄 Socket reconnected — rejoining battle room");
+      toast("Reconnected to battle!", { icon: "🔄", duration: 2000 });
+      socket.emit("battle:rejoin", {
+        roomId: battle.roomId,
+        battleId: battle.battleId,
+      });
+    };
+
+    const handleReconnectFailed = () => {
+      toast.error("Lost connection. Please refresh the page.", { duration: 5000 });
+    };
+
+    const handleRejoined = ({ roomId }) => {
+      console.log("✅ Successfully rejoined battle room:", roomId);
+    };
+
+    socket.on("reconnect", handleReconnect);
+    socket.on("reconnect_failed", handleReconnectFailed);
+    socket.on("battle:rejoined", handleRejoined);
+
+    return () => {
+      socket.off("reconnect", handleReconnect);
+      socket.off("reconnect_failed", handleReconnectFailed);
+      socket.off("battle:rejoined", handleRejoined);
+    };
+  }, [battle]);
+
   const autoForfeit = useCallback((reason) => {
-    if (!isBattleActive || hasAutoForfeited || !battle?.battleId) return;
+    if (hasAutoForfeited) return;
     setHasAutoForfeited(true);
+
     toast.error(`⚠️ Disqualified: ${reason}`, { duration: 5000 });
-    setTimeout(() => { forfeit(battle.battleId); }, 1000);
-  }, [isBattleActive, hasAutoForfeited, battle?.battleId, forfeit]);
+
+    // If battle is active, emit forfeit so server sends back battle:ended
+    // which will set battleResult and show the modal.
+    if (battle?.battleId) {
+      setTimeout(() => {
+        forfeit(battle.battleId);
+      }, 800);
+    } else {
+      // No active battle (e.g. violation during queue) — just go home
+      setTimeout(() => {
+        reset();
+        navigate("/");
+      }, 3000);
+    }
+  }, [hasAutoForfeited, battle?.battleId, forfeit, reset, navigate]);
 
   const requestFullscreenManually = useCallback(async () => {
     try {
@@ -214,11 +266,12 @@ export default function BattlePage() {
   useAntiCheat(isBattleActive, (type, count) => { setViolations(count); });
 
   useEffect(() => {
-    if (queueStatus === "idle" && !battle) navigate("/");
-  }, [queueStatus, battle, navigate]);
+    if (queueStatus === "idle" && !battle && !battleResult) navigate("/");
+  }, [queueStatus, battle, battleResult, navigate]);
 
   useEffect(() => { setCode(STARTER_CODE[language] || ""); }, [language]);
 
+  // Submission result toast + tab switch
   useEffect(() => {
     if (submissionResult) {
       if (submissionResult.status === "AC")
@@ -232,49 +285,20 @@ export default function BattlePage() {
     }
   }, [submissionResult]);
 
+  // Run result → switch to output tab
   useEffect(() => { if (runResult) setActiveTab("output"); }, [runResult]);
 
+  // Battle result → auto-close after 8s
   useEffect(() => {
     if (battleResult) {
-      const timer = setTimeout(() => { reset(); navigate("/"); }, 6000);
+      if (document.fullscreenElement) document.exitFullscreen().catch(console.warn);
+      const timer = setTimeout(() => {
+        reset();
+        navigate("/");
+      }, 8000);
       return () => clearTimeout(timer);
     }
   }, [battleResult, reset, navigate]);
-
-  // ✅ FIXED: Socket reconnect — uses battle:rejoin instead of battle:join_room
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !battle) return;
-
-    const handleReconnect = () => {
-      console.log("🔄 Socket reconnected — rejoining battle room");
-      toast("Reconnected to battle!", { icon: "🔄", duration: 2000 });
-      // Use battle:rejoin (server has this handler now)
-      // Do NOT use battle:join_room — that had no server handler
-      socket.emit("battle:rejoin", {
-        roomId: battle.roomId,
-        battleId: battle.battleId,
-      });
-    };
-
-    const handleReconnectFailed = () => {
-      toast.error("Lost connection. Please refresh the page.", { duration: 5000 });
-    };
-
-    const handleRejoined = ({ roomId }) => {
-      console.log("✅ Successfully rejoined battle room:", roomId);
-    };
-
-    socket.on("reconnect", handleReconnect);
-    socket.on("reconnect_failed", handleReconnectFailed);
-    socket.on("battle:rejoined", handleRejoined);
-
-    return () => {
-      socket.off("reconnect", handleReconnect);
-      socket.off("reconnect_failed", handleReconnectFailed);
-      socket.off("battle:rejoined", handleRejoined);
-    };
-  }, [battle]);
 
   // Fullscreen detection
   useEffect(() => {
@@ -432,7 +456,19 @@ export default function BattlePage() {
   if (queueStatus === "searching" && !battle) {
     return <SearchingScreen onCancel={handleCancel} />;
   }
-  if (!battle) return null;
+  if (!battle && !battleResult) return null;
+  // If battle ended but modal not yet dismissed, keep rendering for the modal
+  if (!battle && battleResult) {
+    return (
+      <AnimatePresence>
+        <BattleResultModal
+          result={battleResult}
+          you={null}
+          onClose={() => { reset(); navigate("/"); }}
+        />
+      </AnimatePresence>
+    );
+  }
 
   const { problem, you, opponent } = battle;
   const isTimeCritical = timeLeft <= 120;
@@ -442,7 +478,7 @@ export default function BattlePage() {
 
   const handleSubmit = () => {
     if (!code.trim()) { toast.error("Write some code first!"); return; }
-    if (violations >= MAX_VIOLATIONS) {
+    if (Math.floor(violations) >= MAX_VIOLATIONS) {
       toast.error(`Too many violations (${Math.floor(violations)}). Match forfeited.`, { duration: 5000 });
       autoForfeit("Exceeded violation limit");
       return;
@@ -724,6 +760,7 @@ export default function BattlePage() {
         </div>
       </div>
 
+      {/* Battle Result Modal */}
       <AnimatePresence>
         {battleResult && (
           <BattleResultModal
@@ -738,6 +775,7 @@ export default function BattlePage() {
         )}
       </AnimatePresence>
 
+      {/* Opponent disconnected banner */}
       <AnimatePresence>
         {opponentDisconnected && !battleResult && (
           <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }} className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-amber-100 border-2 border-black text-black text-sm px-6 py-3 rounded-xl shadow-[4px_4px_0px_#000] font-black flex items-center gap-2 uppercase tracking-wider">
