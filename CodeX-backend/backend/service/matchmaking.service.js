@@ -3,7 +3,6 @@ import Battle from "../models/Battle.js";
 import Problem from "../models/Problem.js";
 import User from "../models/User.js";
 
-// Shared timer map — roomId → TimeoutID
 const battleTimers = new Map();
 
 export const startBattleTimer = (io, roomId, battleId) => {
@@ -37,17 +36,15 @@ class MatchmakingService {
     this.queue = [];
     this.io = null;
     this.activeSocketMap = new Map();
-    this._broadcastTimer = null; // ADD THIS
+    this._broadcastTimer = null; 
   }
 
   setIO(io) {
     this.io = io;
   }
 
-  // ── Public API ──────────────────────────────────────────────────
 
   async addToQueue(userId, socketId, username, rating) {
-    // Remove any stale entry for this user first
     this._removeEntry(userId);
 
     const entry = { userId, socketId, username, rating, joinedAt: Date.now() };
@@ -62,7 +59,6 @@ class MatchmakingService {
   }
 
   removeFromQueue(userId, socketId) {
-    // Only remove if the CALLING socket is still the active one for this user
     const activeSocketId = this.activeSocketMap.get(userId);
     if (socketId && activeSocketId && activeSocketId !== socketId) {
       console.log(
@@ -107,7 +103,6 @@ class MatchmakingService {
     return this.queue.length;
   }
 
-  // ── Internal ─────────────────────────────────────────────────────
 
   _removeEntry(userId) {
     const before = this.queue.length;
@@ -127,7 +122,6 @@ class MatchmakingService {
       if (!s1?.connected) {
         console.log(`[Queue] ${p1.username} socket dead — skipping`);
         this.activeSocketMap.delete(p1.userId);
-        // p2 goes back to front
         this.queue.unshift(p2);
         continue;
       }
@@ -135,7 +129,6 @@ class MatchmakingService {
       if (!s2?.connected) {
         console.log(`[Queue] ${p2.username} socket dead — skipping`);
         this.activeSocketMap.delete(p2.userId);
-        // p1 goes back to front
         this.queue.unshift(p1);
         continue;
       }
@@ -147,7 +140,6 @@ class MatchmakingService {
 
   async _createBattle(player1, player2) {
     try {
-      // Pick random active problem
       const count = await Problem.countDocuments({ isActive: true });
       if (count === 0) {
         console.error("[Queue] No active problems!");
@@ -157,7 +149,7 @@ class MatchmakingService {
         this.io.to(player2.socketId).emit("matchmaking:error", {
           message: "No problems available. Retry soon.",
         });
-        // Put both back
+        
         this.queue.unshift(player2);
         this.queue.unshift(player1);
         return;
@@ -180,17 +172,15 @@ class MatchmakingService {
         timeLimit: 1800,
       });
 
-      // Mark both users as in-battle
+      
       await User.updateMany(
         { _id: { $in: [player1.userId, player2.userId] } },
         { currentBattleId: battle._id },
       );
-
-      // Remove from active socket map (they're matched now)
       this.activeSocketMap.delete(player1.userId);
       this.activeSocketMap.delete(player2.userId);
 
-      // Build problem payload (no hidden test cases exposed)
+     
       const problemData = {
         _id: problem._id,
         title: problem.title,
@@ -214,13 +204,12 @@ class MatchmakingService {
         timeLimit: battle.timeLimit,
       };
 
-      // Join sockets to room SERVER-SIDE immediately
       const s1 = this.io.sockets.sockets.get(player1.socketId);
       const s2 = this.io.sockets.sockets.get(player2.socketId);
       if (s1) s1.join(roomId);
       if (s2) s2.join(roomId);
 
-      // Send matched events
+
       this.io.to(player1.socketId).emit("battle:matched", {
         ...base,
         you: {
@@ -248,10 +237,8 @@ class MatchmakingService {
         },
       });
 
-      // Start 30-min timer
       startBattleTimer(this.io, roomId, battle._id.toString());
 
-      // Signal both clients to start their countdown
       this.io
         .to(roomId)
         .emit("battle:start", { roomId, battleId: battle._id.toString() });
@@ -261,7 +248,6 @@ class MatchmakingService {
       );
     } catch (err) {
       console.error("[Matchmaking] createBattle error:", err.message);
-      // Requeue both
       this.queue.unshift(player2);
       this.queue.unshift(player1);
     }
@@ -269,7 +255,6 @@ class MatchmakingService {
 
   _broadcastQueueSize() {
     if (!this.io) return;
-    // Debounce — wait 100ms so rapid add/remove settles
     if (this._broadcastTimer) clearTimeout(this._broadcastTimer);
     this._broadcastTimer = setTimeout(() => {
       this._broadcastTimer = null;
