@@ -15,7 +15,7 @@ const seedProblems = async () => {
   try {
     const count = await Problem.countDocuments({ isActive: true });
     if (count === 0) {
-      console.log(`📚 Seeding ${PROBLEMS_SEED.length} problems...`);
+      console.log(`Seeding ${PROBLEMS_SEED.length} problems...`);
       let created = 0;
       for (const prob of PROBLEMS_SEED) {
         const exists = await Problem.findOne({ slug: prob.slug });
