@@ -1,19 +1,17 @@
-/** @format */
+
 
 import { submitSolution, endBattle } from "../service/battle.service.js";
 import { executeCode } from "../service/codeExecution.service.js";
 import { clearBattleTimer } from "../service/matchmaking.service.js";
 import Battle from "../models/Battle.js";
 
-// Grace period timers for disconnect: roomId → TimeoutID
 const disconnectTimers = new Map();
 
-// Rate limiting: userId → last submit timestamp
 const submitCooldowns = new Map();
 const runCooldowns = new Map();
 
-const SUBMIT_COOLDOWN_MS = 10_000; // 10 seconds between submits
-const RUN_COOLDOWN_MS = 3_000; // 3 seconds between runs
+const SUBMIT_COOLDOWN_MS = 10_000;
+const RUN_COOLDOWN_MS = 3_000; 
 
 function canDo(map, userId, cooldownMs) {
   const last = map.get(userId) || 0;
@@ -25,7 +23,6 @@ function canDo(map, userId, cooldownMs) {
 const battleHandler = (io, socket) => {
   const userId = socket.user._id.toString();
 
-  // Client confirms room join
   socket.on("battle:join_room", ({ roomId }) => {
     socket.join(roomId);
     socket.to(roomId).emit("battle:opponent_joined", {
@@ -34,7 +31,6 @@ const battleHandler = (io, socket) => {
     });
   });
 
-  // Submit code for judging
   socket.on("battle:submit", async ({ battleId, code, language }) => {
     if (!canDo(submitCooldowns, userId, SUBMIT_COOLDOWN_MS)) {
       socket.emit("battle:error", {
@@ -45,7 +41,6 @@ const battleHandler = (io, socket) => {
 
     socket.emit("battle:submission_pending");
 
-    // Notify opponent
     for (const room of socket.rooms) {
       if (room !== socket.id) {
         socket
@@ -69,7 +64,6 @@ const battleHandler = (io, socket) => {
     }
   });
 
-  // Run code against custom input (no test cases)
   socket.on("battle:run_code", async ({ code, language, input }) => {
     if (!canDo(runCooldowns, userId, RUN_COOLDOWN_MS)) {
       socket.emit("battle:run_result", {
@@ -94,7 +88,6 @@ const battleHandler = (io, socket) => {
     }
   });
 
-  // Forfeit
   socket.on("battle:forfeit", async ({ battleId }) => {
     try {
       const battle = await Battle.findById(battleId);
@@ -112,9 +105,7 @@ const battleHandler = (io, socket) => {
     }
   });
 
-  // Handle disconnect during battle
   socket.on("disconnecting", async () => {
-    // Only process the first non-socket room (battle rooms are UUIDs, not socket.id)
     const battleRoom = [...socket.rooms].find((r) => r !== socket.id);
     if (!battleRoom) return;
 
@@ -125,20 +116,17 @@ const battleHandler = (io, socket) => {
       });
       if (!battle) return;
 
-      // Clear any existing grace timer for this room
       if (disconnectTimers.has(battleRoom)) {
         clearTimeout(disconnectTimers.get(battleRoom));
         disconnectTimers.delete(battleRoom);
       }
 
-      // Notify opponent
       socket.to(battleRoom).emit("battle:opponent_disconnected", {
         userId,
         username: socket.user.username,
         reconnectWindow: 30,
       });
 
-      // 30-second grace period
       const timer = setTimeout(async () => {
         disconnectTimers.delete(battleRoom);
         try {
