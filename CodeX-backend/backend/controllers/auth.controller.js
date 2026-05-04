@@ -35,7 +35,6 @@ export const register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      token,
       user: user.toSafeObject(),
     });
   } catch (err) {
