@@ -1,72 +1,71 @@
 import { create } from "zustand";
 import api from "../services/api";
+import { connectSocket, disconnectSocket } from "../services/socket";
 
-const useAuthStore = create((set) => ({
+const useAuthStore = create((set, get) => ({
   user: null,
   isLoading: false,
-  isInitialized: false,  
-
+  isInitialized: false,
+  
   init: async () => {
-    set({ isLoading: true });
     try {
-      const res = await api.get("/auth/me");
-      set({ user: res.data.user, isLoading: false, isInitialized: true });
-    } catch {
-      set({ user: null, isLoading: false, isInitialized: true });
-    }
-  },
-
-  updateUser: (updates) => {
-    set((state) => ({
-      user: state.user ? { ...state.user, ...updates } : null
-    }));
-  },
-
-  login: async (email, password) => {
-    set({ isLoading: true });
-    try {
-      const res = await api.post("/auth/login", { email, password });
-      set({ user: res.data.user, isLoading: false });
-      return { success: true };
-    } catch (error) {
-      set({ isLoading: false });
-      return { success: false, message: error.response?.data?.message || "Login failed" };
+      set({ isLoading: true });
+      const { data } = await api.get("/auth/me");
+      set({ user: data.user, isInitialized: true, isLoading: false });
+      connectSocket(); 
+    } catch (err) {
+      console.log("Not authenticated:", err.response?.status);
+      set({ user: null, isInitialized: true, isLoading: false });
     }
   },
 
   register: async (username, email, password) => {
     set({ isLoading: true });
     try {
-      const res = await api.post("/auth/register", { username, email, password });
-      set({ user: res.data.user, isLoading: false });
+      const { data } = await api.post("/auth/register", {
+        username,
+        email,
+        password,
+      });
+      set({ user: data.user, isLoading: false });
+      connectSocket();
       return { success: true };
-    } catch (error) {
+    } catch (err) {
       set({ isLoading: false });
-      return { success: false, message: error.response?.data?.message || "Registration failed" };
+      return {
+        success: false,
+        message: err.response?.data?.message || "Registration failed",
+      };
+    }
+  },
+
+  login: async (email, password) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await api.post("/auth/login", { email, password });
+      set({ user: data.user, isLoading: false });
+      connectSocket();
+      return { success: true };
+    } catch (err) {
+      set({ isLoading: false });
+      return {
+        success: false,
+        message: err.response?.data?.message || "Login failed",
+      };
     }
   },
 
   logout: async () => {
     try {
       await api.post("/auth/logout");
-      set({ user: null });
-      return { success: true };
-    } catch {
-      return { success: false };
+    } catch (err) {
+      console.log("Logout error:", err);
     }
+    disconnectSocket();
+    set({ user: null, isInitialized: false });
   },
 
-  checkAuth: async () => {
-    set({ isLoading: true });
-    try {
-      const res = await api.get("/auth/me");
-      set({ user: res.data.user, isLoading: false });
-      return { success: true };
-    } catch {
-      set({ user: null, isLoading: false });
-      return { success: false };
-    }
-  },
+  updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
 }));
 
 export default useAuthStore;
