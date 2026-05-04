@@ -19,7 +19,7 @@ export const startBattleTimer = (io, roomId, battleId) => {
     } finally {
       battleTimers.delete(roomId);
     }
-  }, 30 * 60 * 1000); // 30 min
+  }, 30 * 60 * 1000);
   battleTimers.set(roomId, timer);
 };
 
@@ -36,13 +36,12 @@ class MatchmakingService {
     this.queue = [];
     this.io = null;
     this.activeSocketMap = new Map();
-    this._broadcastTimer = null; 
+    this._broadcastTimer = null;
   }
 
   setIO(io) {
     this.io = io;
   }
-
 
   async addToQueue(userId, socketId, username, rating) {
     this._removeEntry(userId);
@@ -51,9 +50,18 @@ class MatchmakingService {
     this.queue.push(entry);
     this.activeSocketMap.set(userId, socketId);
 
-    console.log(
-      `[Queue] + ${username} (${socketId}). Total: ${this.queue.length}`,
-    );
+    console.log(`[Queue] + ${username} (${socketId}). Total: ${this.queue.length}`);
+    
+    // Send immediate position to the user who just joined
+    const socket = this.io.sockets.sockets.get(socketId);
+    if (socket && socket.connected) {
+      socket.emit("matchmaking:queued", {
+        position: this.queue.length,
+        queueSize: this.queue.length,
+        message: "In queue — finding opponent..."
+      });
+    }
+    
     this._broadcastQueueSize();
     await this._tryMatch();
   }
@@ -62,7 +70,7 @@ class MatchmakingService {
     const activeSocketId = this.activeSocketMap.get(userId);
     if (socketId && activeSocketId && activeSocketId !== socketId) {
       console.log(
-        `[Queue] Ignore stale disconnect for ${userId} (active: ${activeSocketId}, caller: ${socketId})`,
+        `[Queue] Ignore stale disconnect for ${userId} (active: ${activeSocketId}, caller: ${socketId})`
       );
       return;
     }
@@ -80,9 +88,7 @@ class MatchmakingService {
     if (entry) {
       entry.socketId = newSocketId;
       this.activeSocketMap.set(userId, newSocketId);
-      console.log(
-        `[Queue] Updated socket for ${entry.username} → ${newSocketId}`,
-      );
+      console.log(`[Queue] Updated socket for ${entry.username} → ${newSocketId}`);
     }
   }
 
@@ -102,7 +108,6 @@ class MatchmakingService {
   getQueueSize() {
     return this.queue.length;
   }
-
 
   _removeEntry(userId) {
     const before = this.queue.length;
@@ -172,15 +177,13 @@ class MatchmakingService {
         timeLimit: 1800,
       });
 
-      
       await User.updateMany(
         { _id: { $in: [player1.userId, player2.userId] } },
-        { currentBattleId: battle._id },
+        { currentBattleId: battle._id }
       );
       this.activeSocketMap.delete(player1.userId);
       this.activeSocketMap.delete(player2.userId);
 
-     
       const problemData = {
         _id: problem._id,
         title: problem.title,
@@ -208,7 +211,6 @@ class MatchmakingService {
       const s2 = this.io.sockets.sockets.get(player2.socketId);
       if (s1) s1.join(roomId);
       if (s2) s2.join(roomId);
-
 
       this.io.to(player1.socketId).emit("battle:matched", {
         ...base,
@@ -239,12 +241,13 @@ class MatchmakingService {
 
       startBattleTimer(this.io, roomId, battle._id.toString());
 
-      this.io
-        .to(roomId)
-        .emit("battle:start", { roomId, battleId: battle._id.toString() });
+      this.io.to(roomId).emit("battle:start", { 
+        roomId, 
+        battleId: battle._id.toString() 
+      });
 
       console.log(
-        `⚔️  [${roomId}] ${player1.username} vs ${player2.username} | "${problem.title}"`,
+        `⚔️ [${roomId}] ${player1.username} vs ${player2.username} | "${problem.title}"`
       );
     } catch (err) {
       console.error("[Matchmaking] createBattle error:", err.message);
@@ -252,13 +255,36 @@ class MatchmakingService {
       this.queue.unshift(player1);
     }
   }
+  
+  _broadcastUserPositions() {
+    if (!this.io) return;
+    
+    console.log(`📢 Broadcasting positions to ${this.queue.length} users in queue`);
+    
+    // Send individual position to each user in queue
+    for (let i = 0; i < this.queue.length; i++) {
+      const player = this.queue[i];
+      const socket = this.io.sockets.sockets.get(player.socketId);
+      if (socket && socket.connected) {
+        const positionData = {
+          position: i + 1,
+          queueSize: this.queue.length,
+          message: `Position ${i + 1} of ${this.queue.length}`
+        };
+        socket.emit("matchmaking:queued", positionData);
+        console.log(`  → Sent position ${i + 1} to ${player.username}`);
+      }
+    }
+    
+    this.io.emit("matchmaking:queue_size", this.queue.length);
+  }
 
   _broadcastQueueSize() {
     if (!this.io) return;
     if (this._broadcastTimer) clearTimeout(this._broadcastTimer);
     this._broadcastTimer = setTimeout(() => {
       this._broadcastTimer = null;
-      this.io.emit("matchmaking:queue_size", this.queue.length);
+      this._broadcastUserPositions();
     }, 100);
   }
 }
