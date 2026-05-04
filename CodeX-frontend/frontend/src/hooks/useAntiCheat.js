@@ -1,16 +1,11 @@
 import { useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 
-/**
- * useAntiCheat — paste block + tab switch detection + fullscreen enforcement
- * @param {boolean} active — only runs during an active battle
- * @param {function} onViolation — optional callback(type, count)
- */
+
 const useAntiCheat = (active, onViolation) => {
   const violationCount = useRef(0);
   const tabSwitchCount = useRef(0);
 
-  // Stable ref so effects don't re-run when parent re-renders
   const onViolationRef = useRef(onViolation);
   useEffect(() => {
     onViolationRef.current = onViolation;
@@ -23,7 +18,6 @@ const useAntiCheat = (active, onViolation) => {
     }
   }, []);
 
-  // ── Block copy/paste/cut globally ────────────────────────────────────────
   useEffect(() => {
     if (!active) return;
 
@@ -110,7 +104,7 @@ const useAntiCheat = (active, onViolation) => {
       );
 
     const handleFullscreenChange = () => {
-      if (isFullscreen()) return; // they re-entered — no action needed
+      if (isFullscreen()) return;
 
       notify("fullscreen_exit");
       toast("🔲 Please stay in fullscreen during the battle.", {
