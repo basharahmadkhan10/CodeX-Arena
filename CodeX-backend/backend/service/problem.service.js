@@ -1,7 +1,6 @@
 import Problem from "../models/Problem.js";
 
 export const getRandomProblems = async (count = 4) => {
-  // Get random problems from database
   const problems = await Problem.aggregate([
     { $match: { isActive: true } },
     { $sample: { size: count } }
