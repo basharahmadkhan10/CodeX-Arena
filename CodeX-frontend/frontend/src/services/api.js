@@ -1,26 +1,31 @@
-
 import axios from "axios";
 
 const api = axios.create({
   baseURL: "https://codex-arena-backend-90y5.onrender.com/api/v1",
-  withCredentials: true, 
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
-  console.log(`📡 ${config.method?.toUpperCase()} ${config.url}`);
+  console.log(` ${config.method?.toUpperCase()} ${config.url}`);
   return config;
 });
 
+let isRefreshing = false;
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      axios.post('https://codex-arena-backend-90y5.onrender.com/api/v1/auth/logout', {}, {
-        withCredentials: true
-      }).catch(console.error);
+  async (err) => {
+    const originalRequest = err.config;
+
+    if (err.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const isAuthEndpoint = originalRequest.url?.includes('/auth/');
       
-      window.location.href = "/login";
+      if (!isAuthEndpoint && !window.location.pathname.includes('/login')) {
+        window.location.href = "/login";
+      }
     }
+    
     return Promise.reject(err);
   }
 );
