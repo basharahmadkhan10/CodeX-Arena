@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { JWT_SECRET, JWT_EXPIRES_IN } from "../config/constants.js";
+import Battle from "../models/Battle.js";
 
 const signToken = (id) =>
   jwt.sign({ id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
