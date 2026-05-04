@@ -5,7 +5,6 @@ import { runTestCases } from "./codeExecution.service.js";
 
 const RATING = { WIN: 25, LOSS: -15, DRAW: 5 };
 
-// ── Get random problems for room battle ─────────────────────────────────────
 export const getRandomProblems = async (count = 4) => {
   const problems = await Problem.aggregate([
     { $match: { isActive: true } },
@@ -19,9 +18,7 @@ export const getRandomProblems = async (count = 4) => {
   return problems;
 };
 
-// ── Start a ROOM battle with 4 questions ────────────────────────────────────
 export const startRoomBattle = async (roomId, participants, timeLimit = 2700) => {
-  // Get 4 random problems from database
   const problems = await getRandomProblems(4);
   
   const battle = new Battle({
@@ -40,11 +37,8 @@ export const startRoomBattle = async (roomId, participants, timeLimit = 2700) =>
   });
   
   await battle.save();
-  
-  // Populate problems for response
   await battle.populate("problems", "title description difficulty examples constraints tags testCases");
-  
-  // Format for frontend
+
   return {
     battleId: battle._id,
     roomId: battle.roomId,
@@ -68,7 +62,6 @@ export const startRoomBattle = async (roomId, participants, timeLimit = 2700) =>
   };
 };
 
-// ── Submit solution for ROOM battles (4 questions mode) ────────────────────
 export const submitRoomQuestion = async (
   battleId,
   userId,
@@ -86,8 +79,7 @@ export const submitRoomQuestion = async (
     (p) => p.user.toString() === userId,
   );
   if (!participant) throw new Error("You are not a participant");
-  
-  // Check if already solved this question
+ 
   const alreadySolved = participant.questionResults?.find(
     qr => qr.questionIndex === questionIndex && qr.status === "AC"
   );
@@ -103,7 +95,6 @@ export const submitRoomQuestion = async (
     testCases,
   );
 
-  // Update participant's result for this question
   const existingResult = participant.questionResults?.find(
     qr => qr.questionIndex === questionIndex
   );
@@ -128,15 +119,13 @@ export const submitRoomQuestion = async (
       errorMessage: errorMessage || null,
     });
   }
-  
-  // Update solved count
+
   participant.solvedCount = participant.questionResults.filter(
     qr => qr.status === "AC"
   ).length;
   
   await battle.save();
 
-  // Broadcast live status update to entire room
   io.to(battle.roomId).emit("room:submission_update", {
     userId,
     questionIndex,
@@ -147,7 +136,6 @@ export const submitRoomQuestion = async (
     language,
   });
 
-  // Check if player solved ALL questions
   if (participant.solvedCount === battle.problems.length) {
     await endRoomBattleWithQuestions(battle._id, userId, "all_solved", io);
   }
@@ -155,7 +143,7 @@ export const submitRoomQuestion = async (
   return { status, passed, total, results, errorMessage };
 };
 
-// ── End a ROOM battle with 4 questions ──────────────────────────────────────
+
 export const endRoomBattleWithQuestions = async (battleId, winnerId, reason, io) => {
   const battle = await Battle.findById(battleId).populate("participants.user");
   if (!battle || battle.status !== "active") return;
@@ -166,7 +154,7 @@ export const endRoomBattleWithQuestions = async (battleId, winnerId, reason, io)
   battle.endReason = reason;
 
   if (reason === "timeout") {
-    // Winner = most solved questions, then most test cases passed
+    
     let maxSolved = -1;
     let maxPassed = -1;
     let topUserId = null;
@@ -199,7 +187,7 @@ export const endRoomBattleWithQuestions = async (battleId, winnerId, reason, io)
       }
     }
   } else {
-    // all_solved / forfeit / disconnect → explicit winner
+    
     battle.winner = winnerId;
     for (const p of battle.participants) {
       const uid = (p.user._id || p.user).toString();
@@ -209,7 +197,7 @@ export const endRoomBattleWithQuestions = async (battleId, winnerId, reason, io)
 
   await battle.save();
 
-  // Update every participant's stats + rating
+  
   for (const participant of battle.participants) {
     const uid = participant.user._id || participant.user;
     const u = await User.findById(uid);
@@ -228,7 +216,6 @@ export const endRoomBattleWithQuestions = async (battleId, winnerId, reason, io)
     await u.save();
   }
 
-  // Emit result to every socket in the room
   io.to(battle.roomId).emit("room:battle_ended", {
     winnerId: battle.winner?.toString() || null,
     reason,
