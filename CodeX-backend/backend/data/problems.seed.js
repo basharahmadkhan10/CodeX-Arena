@@ -224,6 +224,388 @@ const PROBLEMS_SEED = [
     [{ input: "aabcccdddd", output: "a2b1c3d4" }, { input: "abc", output: "abc" }],
     [["aabcccdddd","a2b1c3d4",true],["abc","abc",true],["aaaa","a4"],["aabb","a2b2"],["a","a"]]
   ),
+  // Add these to your existing PROBLEMS_SEED array
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  LINKED LIST PROBLEMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Reverse Linked List", "reverse-linked-list", "Easy", ["Linked List", "Recursion"],
+  `Reverse a singly linked list.\n\n### Input\n- Line 1: N (number of nodes)\n- Line 2: N space-separated integers (values)\n\n### Output\nReversed list values space-separated.`,
+  "0 ≤ N ≤ 5000, -5000 ≤ Node.val ≤ 5000",
+  [{ input: "5\n1 2 3 4 5", output: "5 4 3 2 1" }, { input: "2\n1 2", output: "2 1" }],
+  [["5\n1 2 3 4 5","5 4 3 2 1",true],["2\n1 2","2 1",true],["0\n",""],["1\n5","5"],["3\n1 1 1","1 1 1"]]
+),
+
+p("Middle of Linked List", "middle-linked-list", "Easy", ["Linked List", "Two Pointers"],
+  `Find the middle node of a linked list. If there are two middles, return the second one.\n\n### Input\n- Line 1: N (number of nodes)\n- Line 2: N space-separated integers\n\n### Output\nValue of middle node.`,
+  "1 ≤ N ≤ 100",
+  [{ input: "5\n1 2 3 4 5", output: "3" }, { input: "4\n1 2 3 4", output: "3" }],
+  [["5\n1 2 3 4 5","3",true],["4\n1 2 3 4","3",true],["1\n5","5"],["3\n1 2 3","2"]]
+),
+
+p("Detect Cycle", "detect-cycle", "Easy", ["Linked List", "Two Pointers", "Floyd's Cycle"],
+  `Detect if linked list has a cycle. Print YES if cycle exists, NO otherwise.\n\n### Input\n- Line 1: N (number of nodes)\n- Line 2: N space-separated integers\n- Line 3: pos (index where tail connects, -1 if no cycle)\n\n### Output\nYES or NO.`,
+  "0 ≤ N ≤ 10^4, -1 ≤ pos < N",
+  [{ input: "3\n3 2 0\n1", output: "YES" }, { input: "2\n1 2\n-1", output: "NO" }],
+  [["3\n3 2 0\n1","YES",true],["2\n1 2\n-1","NO",true],["1\n1\n0","YES"],["1\n1\n-1","NO"]]
+),
+
+p("Remove Nth Node From End", "remove-nth-from-end", "Medium", ["Linked List", "Two Pointers"],
+  `Remove the Nth node from the end of the linked list.\n\n### Input\n- Line 1: N (number of nodes)\n- Line 2: N space-separated integers\n- Line 3: n (position from end)\n\n### Output\nList after removal.`,
+  "1 ≤ N ≤ 30, 1 ≤ n ≤ N",
+  [{ input: "5\n1 2 3 4 5\n2", output: "1 2 3 5" }, { input: "2\n1 2\n1", output: "1" }],
+  [["5\n1 2 3 4 5\n2","1 2 3 5",true],["2\n1 2\n1","1",true],["3\n1 2 3\n3","2 3"],["4\n1 2 3 4\n4","2 3 4"]]
+),
+
+p("Merge Two Sorted Lists", "merge-two-lists", "Easy", ["Linked List", "Merge"],
+  `Merge two sorted linked lists into one sorted list.\n\n### Input\n- Line 1: N (list1 size)\n- Line 2: N sorted integers\n- Line 3: M (list2 size)\n- Line 4: M sorted integers\n\n### Output\nMerged sorted list.`,
+  "0 ≤ N, M ≤ 50",
+  [{ input: "3\n1 2 4\n3\n1 3 4", output: "1 1 2 3 4 4" }],
+  [["3\n1 2 4\n3\n1 3 4","1 1 2 3 4 4",true],["2\n1 2\n1\n3","1 2 3"],["0\n\n3\n1 2 3","1 2 3"],["1\n1\n0\n","1"]]
+),
+
+p("Palindrome Linked List", "palindrome-linked-list", "Medium", ["Linked List", "Two Pointers"],
+  `Check if linked list is palindrome. Print YES or NO.\n\n### Input\n- Line 1: N\n- Line 2: N integers\n\n### Output\nYES or NO.`,
+  "1 ≤ N ≤ 10^5",
+  [{ input: "4\n1 2 2 1", output: "YES" }, { input: "3\n1 2 3", output: "NO" }],
+  [["4\n1 2 2 1","YES",true],["3\n1 2 3","NO",true],["1\n5","YES"],["5\n1 2 3 2 1","YES"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BINARY TREE PROBLEMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Binary Tree Inorder Traversal", "inorder-traversal", "Easy", ["Binary Tree", "DFS", "Recursion"],
+  `Print inorder traversal of binary tree.\n\n### Input\n- Line 1: N (number of nodes)\n- Next N lines: nodeID leftChild rightChild (-1 for null)\n- Root is node 1\n\n### Output\nInorder traversal values.`,
+  "1 ≤ N ≤ 100",
+  [{ input: "3\n1 2 3\n2 -1 -1\n3 -1 -1", output: "2 1 3" }],
+  [["3\n1 2 3\n2 -1 -1\n3 -1 -1","2 1 3",true],["1\n1 -1 -1","1"],["5\n1 2 3\n2 4 5\n3 -1 -1\n4 -1 -1\n5 -1 -1","4 2 5 1 3"]]
+),
+
+p("Maximum Depth of Binary Tree", "max-depth", "Easy", ["Binary Tree", "DFS"],
+  `Find maximum depth of binary tree.\n\n### Input\n- Line 1: N\n- Next N lines: nodeID leftChild rightChild\n- Root is node 1\n\n### Output\nMaximum depth.`,
+  "1 ≤ N ≤ 10^4",
+  [{ input: "3\n1 2 -1\n2 -1 -1", output: "2" }],
+  [["3\n1 2 -1\n2 -1 -1","2",true],["1\n1 -1 -1","1"],["5\n1 2 3\n2 4 5\n3 -1 -1\n4 -1 -1\n5 -1 -1","3"]]
+),
+
+p("Binary Tree Level Order Traversal", "level-order", "Medium", ["Binary Tree", "BFS", "Queue"],
+  `Print level order traversal (each level on new line).\n\n### Input\n- Line 1: N\n- Next N lines: nodeID leftChild rightChild\n- Root is node 1\n\n### Output\nLevel order values (each level space-separated, different lines).`,
+  "1 ≤ N ≤ 2000",
+  [{ input: "3\n1 2 3\n2 -1 -1\n3 -1 -1", output: "1\n2 3" }],
+  [["3\n1 2 3\n2 -1 -1\n3 -1 -1","1\n2 3",true],["1\n1 -1 -1","1"],["5\n1 2 3\n2 4 5\n3 -1 -1\n4 -1 -1\n5 -1 -1","1\n2 3\n4 5"]]
+),
+
+p("Invert Binary Tree", "invert-tree", "Easy", ["Binary Tree", "Recursion"],
+  `Invert the binary tree and print level order after inversion.\n\n### Input\n- Line 1: N\n- Next N lines: nodeID leftChild rightChild\n- Root is node 1\n\n### Output\nLevel order after inversion.`,
+  "1 ≤ N ≤ 100",
+  [{ input: "3\n1 2 3\n2 -1 -1\n3 -1 -1", output: "1\n3 2" }],
+  [["3\n1 2 3\n2 -1 -1\n3 -1 -1","1\n3 2",true],["5\n1 2 3\n2 4 5\n3 -1 -1\n4 -1 -1\n5 -1 -1","1\n3 2\n5 4"]]
+),
+
+p("Symmetric Tree", "symmetric-tree", "Easy", ["Binary Tree", "DFS", "BFS"],
+  `Check if binary tree is symmetric around its center. Print YES or NO.\n\n### Input\n- Line 1: N\n- Next N lines: nodeID leftChild rightChild\n- Root is node 1\n\n### Output\nYES or NO.`,
+  "1 ≤ N ≤ 1000",
+  [{ input: "5\n1 2 3\n2 4 5\n3 5 4\n4 -1 -1\n5 -1 -1", output: "YES" }],
+  [["5\n1 2 3\n2 4 5\n3 5 4\n4 -1 -1\n5 -1 -1","YES",true],["5\n1 2 3\n2 4 5\n3 5 4\n4 -1 -1\n5 -1 -1\n?","YES"]]
+),
+
+p("Lowest Common Ancestor", "lca-binary-tree", "Medium", ["Binary Tree", "DFS"],
+  `Find LCA of two nodes p and q in binary tree.\n\n### Input\n- Line 1: N\n- Next N lines: nodeID leftChild rightChild\n- Line N+2: p q (node values)\n\n### Output\nLCA value.`,
+  "2 ≤ N ≤ 10^5",
+  [{ input: "3\n1 2 3\n2 -1 -1\n3 -1 -1\n2 3", output: "1" }],
+  [["3\n1 2 3\n2 -1 -1\n3 -1 -1\n2 3","1",true],["5\n1 2 3\n2 4 5\n3 -1 -1\n4 -1 -1\n5 -1 -1\n4 5","2"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  GREEDY PROBLEMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Activity Selection", "activity-selection", "Medium", ["Greedy", "Intervals"],
+  `Select maximum number of non-overlapping activities. Print count.\n\n### Input\n- Line 1: N\n- Next N lines: start end\n\n### Output\nMax number of activities.`,
+  "1 ≤ N ≤ 10^5",
+  [{ input: "4\n1 3\n2 5\n3 4\n5 7", output: "3" }],
+  [["4\n1 3\n2 5\n3 4\n5 7","3",true],["3\n1 2\n2 3\n3 4","3"],["1\n1 2","1"],["5\n1 5\n2 3\n3 4\n4 6\n5 7","3"]]
+),
+
+p("Coin Change - Greedy", "coin-change-greedy", "Easy", ["Greedy", "Math"],
+  `Minimum coins for amount using given denominations (greedy works when sorted and standard).\n\n### Input\n- Line 1: N Amount\n- Line 2: N coin denominations (sorted)\n\n### Output\nMin coins or -1 if impossible.`,
+  "1 ≤ N ≤ 10, 1 ≤ Amount ≤ 10^6",
+  [{ input: "3 30\n1 5 10", output: "3", explanation: "10+10+10=30" }],
+  [["3 30\n1 5 10","3",true],["4 27\n1 2 5 10","4",true],["2 3\n2 3","1"],["2 7\n2 5","-1"]]
+),
+
+p("Fractional Knapsack", "fractional-knapsack", "Medium", ["Greedy", "Sorting"],
+  `Maximum value with fractional items.\n\n### Input\n- Line 1: N W\n- Next N lines: value weight\n\n### Output\nMaximum value (integer output).`,
+  "1 ≤ N ≤ 1000, 1 ≤ W ≤ 10^6",
+  [{ input: "3 50\n60 10\n100 20\n120 30", output: "240" }],
+  [["3 50\n60 10\n100 20\n120 30","240",true],["2 10\n100 10\n200 10","300"],["2 15\n5 5\n10 10","15"]]
+),
+
+p("Jump Game II - Min Jumps", "jump-game-ii", "Medium", ["Greedy", "Array"],
+  `Minimum jumps to reach last index.\n\n### Input\n- Line 1: N\n- Line 2: N integers (max jump lengths)\n\n### Output\nMin jumps.`,
+  "1 ≤ N ≤ 10^4",
+  [{ input: "5\n2 3 1 1 4", output: "2" }],
+  [["5\n2 3 1 1 4","2",true],["5\n2 3 0 1 4","2"],["1\n0","0"],["3\n1 1 1","2"]]
+),
+
+p("Gas Station", "gas-station", "Medium", ["Greedy", "Array"],
+  `Find starting gas station to complete circuit. Print index or -1.\n\n### Input\n- Line 1: N\n- Line 2: N integers (gas)\n- Line 3: N integers (cost)\n\n### Output\nStart index or -1.`,
+  "1 ≤ N ≤ 10^5",
+  [{ input: "5\n1 2 3 4 5\n3 4 5 1 2", output: "3" }],
+  [["5\n1 2 3 4 5\n3 4 5 1 2","3",true],["3\n2 3 4\n3 4 3","-1"],["4\n5 1 2 3\n4 4 1 2","4"]]
+),
+
+p("Candy Distribution", "candy-distribution", "Hard", ["Greedy", "Array"],
+  `Minimum candies to distribute where higher rating gets more than neighbors.\n\n### Input\n- Line 1: N\n- Line 2: N integers (ratings)\n\n### Output\nMin candies.`,
+  "1 ≤ N ≤ 2×10^4",
+  [{ input: "3\n1 0 2", output: "5" }, { input: "3\n1 2 2", output: "4" }],
+  [["3\n1 0 2","5",true],["3\n1 2 2","4",true],["6\n1 2 3 4 5 6","21"],["5\n5 4 3 2 1","15"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  MORE ARRAY PROBLEMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Container With Most Water", "container-water", "Medium", ["Array", "Two Pointers"],
+  `Find max area of water container.\n\n### Input\n- Line 1: N\n- Line 2: N integers (heights)\n\n### Output\nMax area.`,
+  "2 ≤ N ≤ 10^5",
+  [{ input: "9\n1 8 6 2 5 4 8 3 7", output: "49" }],
+  [["9\n1 8 6 2 5 4 8 3 7","49",true],["4\n1 8 6 2","16"],["3\n1 2 1","2"],["5\n1 3 2 5 25","25"]]
+),
+
+p("3Sum", "3sum", "Medium", ["Array", "Two Pointers", "Sorting"],
+  `Find triplets that sum to zero (unique). Print count.\n\n### Input\n- Line 1: N\n- Line 2: N integers\n\n### Output\nNumber of unique triplets.`,
+  "3 ≤ N ≤ 3000",
+  [{ input: "6\n-1 0 1 2 -1 -4", output: "2" }],
+  [["6\n-1 0 1 2 -1 -4","2",true],["3\n0 0 0","1"],["4\n1 2 3 4","0"],["5\n-2 -1 0 1 2","2"]]
+),
+
+p("Find All Duplicates", "find-duplicates", "Medium", ["Array", "Hash Set"],
+  `Find all numbers that appear twice.\n\n### Input\n- Line 1: N\n- Line 2: N integers (1 to N range)\n\n### Output\nDuplicates space-separated, sorted.`,
+  "1 ≤ N ≤ 10^5",
+  [{ input: "8\n4 3 2 7 8 2 3 1", output: "2 3" }],
+  [["8\n4 3 2 7 8 2 3 1","2 3",true],["5\n1 2 3 4 5",""],["10\n1 1 2 2 3 3 4 4 5 5","1 2 3 4 5"]]
+),
+
+p("Merge Intervals", "merge-intervals", "Medium", ["Array", "Sorting"],
+  `Merge overlapping intervals.\n\n### Input\n- Line 1: N\n- Next N lines: start end\n\n### Output\nMerged intervals count then each interval.`,
+  "1 ≤ N ≤ 10^4",
+  [{ input: "4\n1 3\n2 6\n8 10\n15 18", output: "3\n1 6\n8 10\n15 18" }],
+  [["4\n1 3\n2 6\n8 10\n15 18","3\n1 6\n8 10\n15 18",true],["2\n1 4\n4 5","1\n1 5"],["2\n1 4\n2 3","1\n1 4"]]
+),
+
+p("Next Permutation", "next-permutation", "Medium", ["Array"],
+  `Find next lexicographical permutation.\n\n### Input\n- Line 1: N\n- Line 2: N integers\n\n### Output\nNext permutation.`,
+  "1 ≤ N ≤ 100",
+  [{ input: "3\n1 2 3", output: "1 3 2" }, { input: "3\n3 2 1", output: "1 2 3" }],
+  [["3\n1 2 3","1 3 2",true],["3\n3 2 1","1 2 3",true],["4\n1 1 5","1 5 1"],["2\n2 1","1 2"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STACK & QUEUE PROBLEMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Implement Queue using Stacks", "queue-using-stacks", "Medium", ["Stack", "Queue", "Design"],
+  `Implement queue using two stacks. Operations: push, pop, peek, empty.\n\n### Input\n- Line 1: Q (operations count)\n- Next Q lines: operation (push x, pop, peek, empty)\n\n### Output\nResults for pop, peek, empty.`,
+  "1 ≤ Q ≤ 1000",
+  [{ input: "6\npush 1\npush 2\npeek\npop\nempty\npop", output: "1\n1\nfalse\n2" }],
+  [["6\npush 1\npush 2\npeek\npop\nempty\npop","1\n1\nfalse\n2",true],["3\npush 1\npop\nempty","1\ntrue",true],["2\npush 1\npeek","1"]]
+),
+
+p("Min Stack", "min-stack", "Medium", ["Stack", "Design"],
+  `Design stack that supports push, pop, top, and getMin in O(1).\n\n### Input\n- Line 1: Q\n- Next Q lines: operations\n\n### Output\nResults.`,
+  "1 ≤ Q ≤ 10^4",
+  [{ input: "6\npush -2\npush 0\npush -3\ngetMin\npop\ngetMin", output: "-3\n-2" }],
+  [["6\npush -2\npush 0\npush -3\ngetMin\npop\ngetMin","-3\n-2",true],["4\npush 1\npush 2\ngetMin\npop","1",true]]
+),
+
+p("Daily Temperatures", "daily-temperatures", "Medium", ["Stack", "Array"],
+  `For each day, find days until warmer temperature.\n\n### Input\n- Line 1: N\n- Line 2: N integers (temperatures)\n\n### Output\nN space-separated answers.`,
+  "1 ≤ N ≤ 10^5",
+  [{ input: "8\n73 74 75 71 69 72 76 73", output: "1 1 4 2 1 1 0 0" }],
+  [["8\n73 74 75 71 69 72 76 73","1 1 4 2 1 1 0 0",true],["5\n30 40 50 60 70","1 1 1 1 0"],["5\n70 60 50 40 30","0 0 0 0 0"]]
+),
+
+p("Sliding Window Maximum", "sliding-window-max", "Hard", ["Queue", "Sliding Window", "Deque"],
+  `Find maximum in each sliding window of size k.\n\n### Input\n- Line 1: N K\n- Line 2: N integers\n\n### Output\nN-K+1 maximum values.`,
+  "1 ≤ K ≤ N ≤ 10^5",
+  [{ input: "8 3\n1 3 -1 -3 5 3 6 7", output: "3 3 5 5 6 7" }],
+  [["8 3\n1 3 -1 -3 5 3 6 7","3 3 5 5 6 7",true],["5 1\n1 2 3 4 5","1 2 3 4 5"],["5 5\n1 2 3 4 5","5"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BINARY SEARCH PROBLEMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Find First and Last Position", "first-last-position", "Medium", ["Binary Search", "Array"],
+  `Find first and last position of target in sorted array.\n\n### Input\n- Line 1: N\n- Line 2: N sorted integers\n- Line 3: target\n\n### Output\nfirst last or -1 -1.`,
+  "1 ≤ N ≤ 10^5",
+  [{ input: "8\n5 7 7 8 8 10 10 10\n8", output: "3 4" }],
+  [["8\n5 7 7 8 8 10 10 10\n8","3 4",true],["7\n1 2 3 4 5 6 7\n5","4 4"],["6\n1 1 1 2 2 3\n4","-1 -1"]]
+),
+
+p("Search Insert Position", "search-insert", "Easy", ["Binary Search", "Array"],
+  `Find index where target should be inserted in sorted array.\n\n### Input\n- Line 1: N\n- Line 2: N sorted integers\n- Line 3: target\n\n### Output\nInsert position.`,
+  "1 ≤ N ≤ 10^4",
+  [{ input: "4\n1 3 5 6\n5", output: "2" }, { input: "4\n1 3 5 6\n2", output: "1" }],
+  [["4\n1 3 5 6\n5","2",true],["4\n1 3 5 6\n2","1",true],["4\n1 3 5 6\n7","4"],["4\n1 3 5 6\n0","0"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  HEAP PROBLEMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Kth Largest Element in Array", "kth-largest-array", "Medium", ["Heap", "Sorting", "Array"],
+  `Find Kth largest element in array.\n\n### Input\n- Line 1: N K\n- Line 2: N integers\n\n### Output\nKth largest.`,
+  "1 ≤ K ≤ N ≤ 10^5",
+  [{ input: "6 2\n3 2 1 5 6 4", output: "5" }],
+  [["6 2\n3 2 1 5 6 4","5",true],["4 4\n1 2 3 4","1"],["5 3\n5 4 3 2 1","3"]]
+),
+
+p("Top K Frequent Words", "top-k-frequent-words", "Medium", ["Heap", "Hash Map", "Sorting"],
+  `Find K most frequent words, sorted by frequency then alphabetically.\n\n### Input\n- Line 1: N K\n- Next N lines: words\n\n### Output\nK words space-separated.`,
+  "1 ≤ K ≤ N ≤ 500",
+  [{ input: "6 2\ni\nlove\ni\nlove\ncoding\ni", output: "i love" }],
+  [["6 2\ni\nlove\ni\nlove\ncoding\ni","i love",true],["4 2\nthe\nday\nis\nsunny","day is",true]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  DYNAMIC PROGRAMMING (More)
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Partition Equal Subset Sum", "partition-equal-subset", "Medium", ["DP", "Array"],
+  `Check if array can be partitioned into two subsets with equal sum.\n\n### Input\n- Line 1: N\n- Line 2: N integers\n\n### Output\nYES or NO.`,
+  "1 ≤ N ≤ 200, sum ≤ 20000",
+  [{ input: "4\n1 5 11 5", output: "YES" }, { input: "4\n1 2 3 5", output: "NO" }],
+  [["4\n1 5 11 5","YES",true],["4\n1 2 3 5","NO",true],["2\n1 1","YES"],["3\n1 2 3","NO"]]
+),
+
+p("Longest Palindromic Subsequence", "longest-palindrome-subseq", "Medium", ["DP", "String"],
+  `Find length of longest palindromic subsequence.\n\n### Input\nString S\n\n### Output\nLength.`,
+  "1 ≤ |S| ≤ 1000",
+  [{ input: "bbbab", output: "4" }, { input: "cbbd", output: "2" }],
+  [["bbbab","4",true],["cbbd","2",true],["abcd","1"],["aabaa","4"]]
+),
+
+p("Decode Ways", "decode-ways", "Medium", ["DP", "String"],
+  `Count ways to decode string (A=1, B=2, ..., Z=26).\n\n### Input\nString S\n\n### Output\nNumber of ways.`,
+  "1 ≤ |S| ≤ 100",
+  [{ input: "12", output: "2" }, { input: "226", output: "3" }],
+  [["12","2",true],["226","3",true],["0","0"],["06","0"],["111","3"]]
+),
+
+p("Word Break", "word-break", "Medium", ["DP", "Hash Map", "String"],
+  `Check if string can be segmented into dictionary words.\n\n### Input\n- Line 1: N (dictionary size)\n- Next N lines: dictionary words\n- Last line: target string\n\n### Output\nYES or NO.`,
+  "1 ≤ N ≤ 1000, |S| ≤ 300",
+  [{ input: "2\ni\nlove\nilove", output: "YES" }],
+  [["2\ni\nlove\nilove","YES",true],["2\napple\npen\napplepenapple","YES"],["2\ncats\ndog\ncatsandog","NO"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BACKTRACKING
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Generate Parentheses", "generate-parentheses", "Medium", ["Backtracking", "String"],
+  `Generate all valid combinations of N parentheses pairs.\n\n### Input\nInteger N\n\n### Output\nCount and each combination.`,
+  "1 ≤ N ≤ 8",
+  [{ input: "3", output: "5\n((()))\n(()())\n(())()\n()(())\n()()()" }],
+  [["3","5\n((()))\n(()())\n(())()\n()(())\n()()()",true],["1","1\n()",true],["2","2\n(())\n()()"]]
+),
+
+p("Subsets", "subsets", "Medium", ["Backtracking", "Array"],
+  `Generate all subsets of array.\n\n### Input\n- Line 1: N\n- Line 2: N integers\n\n### Output\nCount and each subset.`,
+  "1 ≤ N ≤ 10",
+  [{ input: "3\n1 2 3", output: "8\n\n1\n2\n1 2\n3\n1 3\n2 3\n1 2 3" }],
+  [["3\n1 2 3","8\n\n1\n2\n1 2\n3\n1 3\n2 3\n1 2 3",true],["1\n5","2\n\n5"]]
+),
+
+p("Permutations", "permutations", "Medium", ["Backtracking", "Array"],
+  `Generate all permutations of array.\n\n### Input\n- Line 1: N\n- Line 2: N integers\n\n### Output\nCount and each permutation.`,
+  "1 ≤ N ≤ 6",
+  [{ input: "3\n1 2 3", output: "6\n1 2 3\n1 3 2\n2 1 3\n2 3 1\n3 1 2\n3 2 1" }],
+  [["3\n1 2 3","6\n1 2 3\n1 3 2\n2 1 3\n2 3 1\n3 1 2\n3 2 1",true],["2\n1 2","2\n1 2\n2 1"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BIT MANIPULATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Missing Number", "missing-number", "Easy", ["Bit", "Array", "Math"],
+  `Find missing number from 0 to N.\n\n### Input\n- Line 1: N\n- Line 2: N integers (0..N with one missing)\n\n### Output\nMissing number.`,
+  "1 ≤ N ≤ 10^4",
+  [{ input: "3\n3 0 1", output: "2" }],
+  [["3\n3 0 1","2",true],["2\n0 1","2"],["4\n9 6 4 2 3 5 7 0 1","8"]]
+),
+
+p("Power of Two", "power-of-two-bit", "Easy", ["Bit"],
+  `Check if number is power of two using bit manipulation.\n\n### Input\nInteger N\n\n### Output\nYES or NO.`,
+  "-2^31 ≤ N ≤ 2^31 - 1",
+  [{ input: "16", output: "YES" }, { input: "18", output: "NO" }],
+  [["16","YES",true],["18","NO",true],["1","YES"],["0","NO"],["-16","NO"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  MATH / NUMBER THEORY
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Happy Number", "happy-number", "Easy", ["Math", "Hash Set"],
+  `Check if number is happy (sum of squares of digits eventually becomes 1).\n\n### Input\nInteger N\n\n### Output\nYES or NO.`,
+  "1 ≤ N ≤ 2^31 - 1",
+  [{ input: "19", output: "YES" }, { input: "2", output: "NO" }],
+  [["19","YES",true],["2","NO",true],["7","YES"],["1","YES"],["20","NO"]]
+),
+
+p("Excel Sheet Column Number", "excel-column-number", "Easy", ["Math", "String"],
+  `Convert Excel column title to number (A=1, Z=26, AA=27).\n\n### Input\nString S\n\n### Output\nColumn number.`,
+  "1 ≤ |S| ≤ 7",
+  [{ input: "A", output: "1" }, { input: "AB", output: "28" }],
+  [["A","1",true],["AB","28",true],["ZY","701"],["AAA","703"]]
+),
+
+p("Count Primes (Sieve)", "count-primes-sieve", "Medium", ["Math", "Sieve"],
+  `Count primes less than N using Sieve.\n\n### Input\nInteger N\n\n### Output\nCount of primes < N.`,
+  "2 ≤ N ≤ 5×10^6",
+  [{ input: "10", output: "4" }, { input: "2", output: "0" }],
+  [["10","4",true],["2","0",true],["100","25"],["1000000","78498"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SLIDING WINDOW
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Minimum Size Subarray Sum", "min-size-subarray-sum", "Medium", ["Sliding Window", "Array"],
+  `Find minimal length subarray with sum ≥ target.\n\n### Input\n- Line 1: N target\n- Line 2: N positive integers\n\n### Output\nMin length or 0.`,
+  "1 ≤ N ≤ 10^5, 1 ≤ target ≤ 10^9",
+  [{ input: "6 7\n2 3 1 2 4 3", output: "2" }],
+  [["6 7\n2 3 1 2 4 3","2",true],["3 11\n1 1 1","0"],["5 15\n1 2 3 4 5","5"]]
+),
+
+p("Fruit Into Baskets", "fruit-into-baskets", "Medium", ["Sliding Window", "Array"],
+  `Maximum fruits you can collect with two baskets (two types max).\n\n### Input\n- Line 1: N\n- Line 2: N integers (fruit types)\n\n### Output\nMax fruits.`,
+  "1 ≤ N ≤ 10^5",
+  [{ input: "7\n1 2 1 2 1 3 3", output: "5" }],
+  [["7\n1 2 1 2 1 3 3","5",true],["5\n1 2 3 2 2","4"],["4\n1 2 3 4","2"]]
+),
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STRING MANIPULATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+p("Longest Common Substring", "longest-common-substring", "Medium", ["String", "DP"],
+  `Find length of longest common substring.\n\n### Input\n- Line 1: S\n- Line 2: T\n\n### Output\nLength.`,
+  "1 ≤ |S|, |T| ≤ 1000",
+  [{ input: "abcde\nabfce", output: "2" }],
+  [["abcde\nabfce","2",true],["abcd\nabcd","4"],["abc\ndef","0"]]
+),
+
+p("Wildcard Matching", "wildcard-matching", "Hard", ["String", "DP", "Greedy"],
+  `Wildcard matching with '?' and '*'.\n\n### Input\n- Line 1: S\n- Line 2: P\n\n### Output\nYES or NO.`,
+  "1 ≤ |S|, |P| ≤ 2000",
+  [{ input: "aa\na*", output: "YES" }, { input: "cb\n?a", output: "NO" }],
+  [["aa\na*","YES",true],["cb\n?a","NO",true],["adceb\n*a*b","YES"],["acdcb\na*c?b","NO"]]
+),
 
   // ══════════════════════════════════════════════
   //  EASY — Array
