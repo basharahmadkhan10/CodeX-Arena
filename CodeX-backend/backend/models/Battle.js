@@ -1,4 +1,3 @@
-/** @format */
 
 import mongoose from "mongoose";
 
@@ -14,7 +13,6 @@ const submissionResultSchema = new mongoose.Schema({
   errorMessage: String,
 });
 
-// New schema for room battle question results
 const questionResultSchema = new mongoose.Schema({
   questionIndex: { type: Number, required: true },
   status: { type: String, enum: ["AC", "WA", "RE", "CE", "pending"], default: "pending" },
@@ -29,30 +27,27 @@ const questionResultSchema = new mongoose.Schema({
 const participantSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   socketId: String,
-  code: String, // For 1v1 compatibility
+  code: String, 
   language: String,
   submittedAt: Date,
-  result: submissionResultSchema, // For 1v1 compatibility
-  questionResults: [questionResultSchema], // NEW: For room battle with 4 questions
+  result: submissionResultSchema, 
+  questionResults: [questionResultSchema], 
   ratingChange: { type: Number, default: 0 },
   isConnected: { type: Boolean, default: true },
-  solvedCount: { type: Number, default: 0 }, // NEW: Track how many questions solved
+  solvedCount: { type: Number, default: 0 }, 
 });
 
 const battleSchema = new mongoose.Schema(
   {
     roomId: { type: String, required: true, unique: true },
-    // For 1v1 battle (single problem)
     problem: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Problem",
     },
-    // For room battle (multiple problems)
     problems: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "Problem",
     }],
-    // Flag to identify battle type
     isRoomBattle: { type: Boolean, default: false },
     participants: [participantSchema],
     status: {
@@ -73,12 +68,11 @@ const battleSchema = new mongoose.Schema(
     startedAt: Date,
     endedAt: Date,
     duration: Number,
-    timeLimit: { type: Number, default: 2700 }, // 45 min for room battle
+    timeLimit: { type: Number, default: 2700 }, 
   },
   { timestamps: true },
 );
 
-// Indexes
 battleSchema.index({ status: 1 });
 battleSchema.index({ status: 1, roomId: 1 });
 battleSchema.index({ "participants.user": 1 });
