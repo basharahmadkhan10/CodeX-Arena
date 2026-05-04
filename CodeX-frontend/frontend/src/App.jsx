@@ -1,8 +1,10 @@
+// src/App.jsx
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import useAuthStore from "./store/authStore";
 import useSocketEvents from "./hooks/useSocketEvents";
+import ErrorBoundary from "./components/ErrorBoundary";
 import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/DashboardPage";
 import BattlePage from "./pages/BattlePage";
@@ -36,12 +38,9 @@ function RequireAuth({ children }) {
   }
 
   if (!user) {
-    console.log("No user, redirecting to login");
     return <Navigate to="/login" replace />;
   }
   
-  // Authenticated - show protected route
-  console.log("User authenticated, showing protected route");
   return children;
 }
 
@@ -49,9 +48,8 @@ export default function App() {
   const { init, user, isInitialized, isLoading } = useAuthStore();
 
   useEffect(() => {
-    console.log("App mounted, initializing auth...");
     init();
-  }, []);
+  }, [init]);
 
   if (isLoading && !isInitialized) {
     return (
@@ -65,79 +63,39 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter
-      future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
-    >
-      {/* Only render socket manager when user exists */}
-      {user && <SocketEventManager />}
-      
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: "#fff",
-            color: "#000",
-            border: "2px solid #000",
-            borderRadius: "10px",
-            fontSize: "13px",
-            fontWeight: "600",
-            boxShadow: "3px 3px 0px #000",
-          },
-          success: { iconTheme: { primary: "#00c8c8", secondary: "#fff" } },
-          error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },
-        }}
-      />
-      
-      <Routes>
-        <Route path="/login" element={<AuthPage />} />
-
-        <Route
-          path="/"
-          element={
-            <RequireAuth>
-              <ModesPage />
-            </RequireAuth>
-          }
-        />
-
-        <Route
-          path="/dashboard"
-          element={
-            <RequireAuth>
-              <HomePage />
-            </RequireAuth>
-          }
-        />
-
-        <Route
-          path="/battle/1v1"
-          element={
-            <RequireAuth>
-              <BattlePage />
-            </RequireAuth>
-          }
-        />
-
-        <Route
-          path="/battle/room"
-          element={
-            <RequireAuth>
-              <RoomBattlePage />
-            </RequireAuth>
-          }
+    <ErrorBoundary>
+      <BrowserRouter
+        future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
+      >
+        {user && <SocketEventManager />}
+        
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "#fff",
+              color: "#000",
+              border: "2px solid #000",
+              borderRadius: "10px",
+              fontSize: "13px",
+              fontWeight: "600",
+              boxShadow: "3px 3px 0px #000",
+            },
+            success: { iconTheme: { primary: "#00c8c8", secondary: "#fff" } },
+            error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },
+          }}
         />
         
-        <Route
-          path="/battle/room/arena"
-          element={
-            <RequireAuth>
-              <RoomArenaPage />
-            </RequireAuth>
-          }
-        />
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/" element={<RequireAuth><ModesPage /></RequireAuth>} />
+          <Route path="/dashboard" element={<RequireAuth><HomePage /></RequireAuth>} />
+          <Route path="/battle/1v1" element={<RequireAuth><BattlePage /></RequireAuth>} />
+          <Route path="/battle/room" element={<RequireAuth><RoomBattlePage /></RequireAuth>} />
+          <Route path="/battle/room/arena" element={<RequireAuth><RoomArenaPage /></RequireAuth>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
