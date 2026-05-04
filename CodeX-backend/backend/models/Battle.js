@@ -14,25 +14,46 @@ const submissionResultSchema = new mongoose.Schema({
   errorMessage: String,
 });
 
+// New schema for room battle question results
+const questionResultSchema = new mongoose.Schema({
+  questionIndex: { type: Number, required: true },
+  status: { type: String, enum: ["AC", "WA", "RE", "CE", "pending"], default: "pending" },
+  passed: { type: Number, default: 0 },
+  total: { type: Number, default: 0 },
+  submittedAt: Date,
+  code: String,
+  language: String,
+  errorMessage: String,
+});
+
 const participantSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   socketId: String,
-  code: String,
+  code: String, // For 1v1 compatibility
   language: String,
   submittedAt: Date,
-  result: submissionResultSchema,
+  result: submissionResultSchema, // For 1v1 compatibility
+  questionResults: [questionResultSchema], // NEW: For room battle with 4 questions
   ratingChange: { type: Number, default: 0 },
   isConnected: { type: Boolean, default: true },
+  solvedCount: { type: Number, default: 0 }, // NEW: Track how many questions solved
 });
 
 const battleSchema = new mongoose.Schema(
   {
-    roomId: { type: String, required: true, unique: true }, // unique already creates an index
+    roomId: { type: String, required: true, unique: true },
+    // For 1v1 battle (single problem)
     problem: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Problem",
-      required: true,
     },
+    // For room battle (multiple problems)
+    problems: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Problem",
+    }],
+    // Flag to identify battle type
+    isRoomBattle: { type: Boolean, default: false },
     participants: [participantSchema],
     status: {
       type: String,
@@ -46,22 +67,21 @@ const battleSchema = new mongoose.Schema(
     },
     endReason: {
       type: String,
-      enum: ["solved", "timeout", "forfeit", "disconnect", null],
+      enum: ["solved", "timeout", "forfeit", "disconnect", "all_solved", null],
       default: null,
     },
     startedAt: Date,
     endedAt: Date,
-    duration: Number, // seconds
-    timeLimit: { type: Number, default: 1800 }, // 30 min in seconds
+    duration: Number,
+    timeLimit: { type: Number, default: 2700 }, // 45 min for room battle
   },
   { timestamps: true },
 );
 
-// ── Indexes ───────────────────────────────────────────────────────────────────
-// roomId is already indexed via unique:true above — no need to repeat it
-battleSchema.index({ status: 1 }); // Battle.findOne({ status: "active" })
-battleSchema.index({ status: 1, roomId: 1 }); // disconnecting handler compound lookup
-battleSchema.index({ "participants.user": 1 }); // history: find all battles for a user
-battleSchema.index({ createdAt: -1 }); // history pagination, newest first
+// Indexes
+battleSchema.index({ status: 1 });
+battleSchema.index({ status: 1, roomId: 1 });
+battleSchema.index({ "participants.user": 1 });
+battleSchema.index({ createdAt: -1 });
 
 export default mongoose.model("Battle", battleSchema);
