@@ -1,5 +1,3 @@
-
-
 import { submitSolution, endBattle } from "../service/battle.service.js";
 import { executeCode } from "../service/codeExecution.service.js";
 import { clearBattleTimer } from "../service/matchmaking.service.js";
@@ -11,7 +9,7 @@ const submitCooldowns = new Map();
 const runCooldowns = new Map();
 
 const SUBMIT_COOLDOWN_MS = 10_000;
-const RUN_COOLDOWN_MS = 3_000; 
+const RUN_COOLDOWN_MS = 3_000;
 
 function canDo(map, userId, cooldownMs) {
   const last = map.get(userId) || 0;
@@ -23,14 +21,59 @@ function canDo(map, userId, cooldownMs) {
 const battleHandler = (io, socket) => {
   const userId = socket.user._id.toString();
 
-  socket.on("battle:join_room", ({ roomId }) => {
-    socket.join(roomId);
-    socket.to(roomId).emit("battle:opponent_joined", {
-      userId,
-      username: socket.user.username,
-    });
+  // ─── REMOVED: battle:join_room ────────────────────────────────────────────
+  // Server already joins both sockets in matchmaking._createBattle().
+  // Client was emitting this after reconnect with a NEW socket ID, which
+  // caused the 404 error in logs and broke room membership.
+  // Use battle:rejoin instead (see below).
+
+  // ─── NEW: battle:rejoin ───────────────────────────────────────────────────
+  // Called by client after a socket reconnect to re-enter their battle room.
+  socket.on("battle:rejoin", async ({ roomId, battleId }) => {
+    try {
+      if (!roomId || !battleId) return;
+
+      const battle = await Battle.findById(battleId);
+      if (!battle || battle.status !== "active") {
+        socket.emit("battle:error", { message: "Battle is no longer active." });
+        return;
+      }
+
+      // Make sure this user is actually a participant
+      const isParticipant = battle.participants.some(
+        (p) => p.user.toString() === userId
+      );
+      if (!isParticipant) {
+        socket.emit("battle:error", { message: "Not a participant in this battle." });
+        return;
+      }
+
+      // Rejoin the socket.io room
+      socket.join(roomId);
+      console.log(`🔄 [${roomId}] ${socket.user.username} rejoined after reconnect`);
+
+      // Cancel any pending disconnect-forfeit timer for this user
+      if (disconnectTimers.has(roomId)) {
+        clearTimeout(disconnectTimers.get(roomId));
+        disconnectTimers.delete(roomId);
+        console.log(`[disconnect grace] Cancelled for ${socket.user.username} — they reconnected`);
+      }
+
+      // Tell opponent they're back
+      socket.to(roomId).emit("battle:opponent_reconnected", {
+        userId,
+        username: socket.user.username,
+      });
+
+      // Ack to client
+      socket.emit("battle:rejoined", { roomId, battleId });
+    } catch (err) {
+      console.error("[battle:rejoin]", err.message);
+      socket.emit("battle:error", { message: "Failed to rejoin battle." });
+    }
   });
 
+  // ─── battle:submit ────────────────────────────────────────────────────────
   socket.on("battle:submit", async ({ battleId, code, language }) => {
     if (!canDo(submitCooldowns, userId, SUBMIT_COOLDOWN_MS)) {
       socket.emit("battle:error", {
@@ -43,11 +86,9 @@ const battleHandler = (io, socket) => {
 
     for (const room of socket.rooms) {
       if (room !== socket.id) {
-        socket
-          .to(room)
-          .emit("battle:opponent_submitting", {
-            username: socket.user.username,
-          });
+        socket.to(room).emit("battle:opponent_submitting", {
+          username: socket.user.username,
+        });
       }
     }
 
@@ -64,6 +105,7 @@ const battleHandler = (io, socket) => {
     }
   });
 
+  // ─── battle:run_code ──────────────────────────────────────────────────────
   socket.on("battle:run_code", async ({ code, language, input }) => {
     if (!canDo(runCooldowns, userId, RUN_COOLDOWN_MS)) {
       socket.emit("battle:run_result", {
@@ -88,13 +130,14 @@ const battleHandler = (io, socket) => {
     }
   });
 
+  // ─── battle:forfeit ───────────────────────────────────────────────────────
   socket.on("battle:forfeit", async ({ battleId }) => {
     try {
       const battle = await Battle.findById(battleId);
       if (!battle || battle.status !== "active") return;
 
       const opponent = battle.participants.find(
-        (p) => p.user.toString() !== userId,
+        (p) => p.user.toString() !== userId
       );
       if (opponent) {
         clearBattleTimer(battle.roomId);
@@ -105,6 +148,7 @@ const battleHandler = (io, socket) => {
     }
   });
 
+  // ─── disconnecting ────────────────────────────────────────────────────────
   socket.on("disconnecting", async () => {
     const battleRoom = [...socket.rooms].find((r) => r !== socket.id);
     if (!battleRoom) return;
@@ -116,6 +160,7 @@ const battleHandler = (io, socket) => {
       });
       if (!battle) return;
 
+      // Clear any existing grace timer before setting a new one
       if (disconnectTimers.has(battleRoom)) {
         clearTimeout(disconnectTimers.get(battleRoom));
         disconnectTimers.delete(battleRoom);
@@ -127,6 +172,7 @@ const battleHandler = (io, socket) => {
         reconnectWindow: 30,
       });
 
+      // Give 30s grace window — if they reconnect (battle:rejoin), timer is cancelled
       const timer = setTimeout(async () => {
         disconnectTimers.delete(battleRoom);
         try {
@@ -134,7 +180,7 @@ const battleHandler = (io, socket) => {
           if (freshBattle?.status !== "active") return;
 
           const opponent = freshBattle.participants.find(
-            (p) => p.user.toString() !== userId,
+            (p) => p.user.toString() !== userId
           );
           if (opponent) {
             clearBattleTimer(battleRoom);
@@ -142,7 +188,7 @@ const battleHandler = (io, socket) => {
               freshBattle._id,
               opponent.user.toString(),
               "disconnect",
-              io,
+              io
             );
           }
         } catch (e) {
