@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import useAuthStore from "./store/authStore";
@@ -23,9 +23,8 @@ function SocketEventManager() {
 
 function RequireAuth({ children }) {
   const { user, isInitialized, isLoading } = useAuthStore();
-  
-  // Show loading while checking auth
-  if (!isInitialized || isLoading) {
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[rgb(255,1,1)] flex items-center justify-center">
         <div className="text-center">
@@ -35,29 +34,26 @@ function RequireAuth({ children }) {
       </div>
     );
   }
-  
-  // Only redirect if definitely not authenticated
+
   if (!user) {
+    console.log("No user, redirecting to login");
     return <Navigate to="/login" replace />;
   }
   
+  // Authenticated - show protected route
+  console.log("User authenticated, showing protected route");
   return children;
 }
 
 export default function App() {
   const { init, user, isInitialized, isLoading } = useAuthStore();
-  const [initAttempted, setInitAttempted] = useState(false);
 
   useEffect(() => {
-    // Only initialize once
-    if (!initAttempted) {
-      setInitAttempted(true);
-      init().catch(console.error);
-    }
-  }, [init, initAttempted]);
+    console.log("App mounted, initializing auth...");
+    init();
+  }, []);
 
-  // Don't render routes until we've tried to initialize
-  if (!initAttempted || isLoading) {
+  if (isLoading && !isInitialized) {
     return (
       <div className="min-h-screen bg-[rgb(255,1,1)] flex items-center justify-center">
         <div className="text-center">
@@ -72,8 +68,8 @@ export default function App() {
     <BrowserRouter
       future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
     >
-      {/* ✅ Only render socket manager when user exists AND init is complete */}
-      {user && isInitialized && <SocketEventManager />}
+      {/* Only render socket manager when user exists */}
+      {user && <SocketEventManager />}
       
       <Toaster
         position="top-right"
