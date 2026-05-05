@@ -203,7 +203,7 @@ class MatchmakingService {
       }
 
       const skip = Math.floor(Math.random() * count);
-      const problem = await Problem.findOne(query).skip(skip);
+      const problem = await Problem.findOne(query).skip(skip).lean();
       const roomId = uuidv4();
       const now = new Date();
 
@@ -230,17 +230,17 @@ class MatchmakingService {
 
       const problemData = {
         _id: problem._id,
-        title: problem.title,
-        slug: problem.slug,
-        description: problem.description,
-        difficulty: problem.difficulty,
-        tags: problem.tags,
-        constraints: problem.constraints,
-        examples: problem.examples,
-        sampleTestCases: problem.testCases
+        title: problem.title || "",
+        slug: problem.slug || "",
+        description: problem.description || "",
+        difficulty: problem.difficulty || "Medium",
+        tags: problem.tags || [],
+        constraints: problem.constraints || "",
+        examples: problem.examples || [],
+        sampleTestCases: (problem.testCases || [])
           .filter((tc) => tc.isPublic)
-          .map((tc) => ({ input: tc.input, output: tc.output })),
-        totalTestCases: problem.testCases.length,
+          .map((tc) => ({ input: tc.input || "", output: tc.output || "" })),
+        totalTestCases: problem.testCases?.length || 0,
         mode: problem.mode || normalizeMode(mode),
         starterCode: problem.starterCode || null,
       };

@@ -44,14 +44,14 @@ export const startRoomBattle = async (roomId, participants, timeLimit = 2700) =>
     roomId: battle.roomId,
     questions: battle.problems.map((p, idx) => ({
       id: p._id,
-      title: p.title,
-      difficulty: p.difficulty,
-      tags: p.tags,
-      description: p.description,
-      constraints: p.constraints,
-      examples: p.examples,
-      sampleTestCases: p.testCases.filter(tc => tc.isPublic),
-      totalTestCases: p.testCases.length,
+      title: p.title || "",
+      difficulty: p.difficulty || "Medium",
+      tags: p.tags || [],
+      description: p.description || "",
+      constraints: p.constraints || "",
+      examples: p.examples || [],
+      sampleTestCases: (p.testCases || []).filter(tc => tc.isPublic),
+      totalTestCases: p.testCases?.length || 0,
       order: idx
     })),
     participants: participants.map(p => ({

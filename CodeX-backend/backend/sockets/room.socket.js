@@ -331,7 +331,20 @@ const roomHandler = (io, socket) => {
       }
       const problems = await Problem.aggregate([
         { $match: { isActive: true } },
-        { $sample: { size: 4 } }
+        { $sample: { size: 4 } },
+        { $project: { 
+          _id: 1,
+          title: 1,
+          slug: 1,
+          description: 1,
+          difficulty: 1,
+          tags: 1,
+          constraints: 1,
+          examples: 1,
+          testCases: 1,
+          starterCode: 1,
+          mode: 1
+        }}
       ]);
 
       if (!problems || problems.length < 4) {
@@ -378,18 +391,19 @@ const roomHandler = (io, socket) => {
       const clientQuestions = problems.map((problem, index) => ({
         id: problem._id,
         order: index,
-        title: problem.title,
-        difficulty: problem.difficulty,
-        description: problem.description,
-        constraints: problem.constraints,
-        tags: problem.tags,
-        examples: (problem.sampleTestCases || []).slice(0, 3).map((tc) => ({
-          input: tc.input,
-          output: tc.output,
-          explanation: tc.explanation,
+        title: problem.title || "",
+        difficulty: problem.difficulty || "Medium",
+        description: problem.description || "",
+        constraints: problem.constraints || "",
+        tags: problem.tags || [],
+        examples: (problem.examples || []).slice(0, 3).map((tc) => ({
+          input: tc.input || "",
+          output: tc.output || "",
+          explanation: tc.explanation || "",
         })),
-        sampleTestCases: problem.sampleTestCases || [],
+        sampleTestCases: (problem.testCases || []).filter(tc => tc.isPublic),
         totalTestCases: (problem.testCases || []).length,
+        starterCode: problem.starterCode || null,
       }));
 
       io.to(code).emit("room:battle_started", {
