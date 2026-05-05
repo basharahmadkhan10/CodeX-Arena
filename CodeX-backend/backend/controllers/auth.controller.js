@@ -188,7 +188,7 @@ export const googleAuth = async (req, res, next) => {
       token,
       user: user.toSafeObject(),
     });
-  }} catch (err) {
+  } catch (err) {
   console.error("Google Auth Error:", err);
 
   return res.status(500).json({
