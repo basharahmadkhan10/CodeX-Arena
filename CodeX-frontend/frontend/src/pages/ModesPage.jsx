@@ -20,20 +20,6 @@ const modes = [
     queueMode: "classic",
   },
   {
-    id: "debug",
-    title: "1v1 Debugging Battle",
-    subtitle: "Fix-it Duel",
-    description:
-      "Face a rival on a buggy starter solution. Fix the mistakes, make the code pass, and submit faster than your opponent.",
-    icon: "🛠️",
-    players: "2 Players",
-    badge: "LIVE", // ← was SOON
-    available: true, // ← was false
-    route: "/battle/debugging",
-    isPaid: false,
-    queueMode: "debugging",
-  },
-  {
     id: "room",
     title: "Room Battle",
     subtitle: "Friends Mode",
@@ -46,6 +32,20 @@ const modes = [
     route: "/battle/room", // ← was null
     isPaid: false,
     queueMode: "classic",
+  },
+  {
+    id: "debug",
+    title: "1v1 Debugging Battle",
+    subtitle: "Fix-it Duel",
+    description:
+      "Face a rival on a buggy starter solution. Fix the mistakes, make the code pass, and submit faster than your opponent.",
+    icon: "🛠️",
+    players: "2 Players",
+    badge: "LIVE", // ← was SOON
+    available: true, // ← was false
+    route: "/battle/debugging",
+    isPaid: false,
+    queueMode: "debugging",
   },
   {
     id: "tournament",
