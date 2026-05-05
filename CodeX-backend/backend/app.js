@@ -73,6 +73,7 @@ const io = new Server(server, {
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: false,
   })
 );
 
