@@ -4,21 +4,21 @@ import useAuthStore from "./authStore";
 
 const useBattleStore = create((set, get) => ({
   // ── Matchmaking ──────────────────────────────────────────────────
-  queueStatus:   "idle",   // idle | searching | matched
-  queueMode:     "classic",
-  queueSize:     0,
-  queuePosition: 0,
+  queueStatus:    "idle",   // idle | searching | matched
+  queueMode:      "classic",
+  queueSize:      0,
+  queuePosition:  0,
 
   // ── 1v1 Battle data ──────────────────────────────────────────────
-  battle:      null,
-  timeLeft:    0,
+  battle:        null,
+  timeLeft:      0,
   timerInterval: null,
 
   // ── 1v1 Submission state ─────────────────────────────────────────
-  isSubmitting:      false,
-  submissionResult:  null,
-  runResult:         null,
-  opponentStatus:    null,
+  isSubmitting:       false,
+  submissionResult:   null,
+  runResult:          null,
+  opponentStatus:     null,
   opponentSubmitting: false,
 
   // ── 1v1 Battle result ────────────────────────────────────────────
@@ -33,8 +33,10 @@ const useBattleStore = create((set, get) => ({
   isRoomHost:  false,
   roomBattle:  null,
 
+  // internal — forfeit safety fallback timer id
+  _forfeitFallback: null,
+
   // ── Socket listener init ─────────────────────────────────────────
-  // No-op: useSocketEvents hook owns all socket wiring.
   initSocketListeners: () => {},
 
   // ── Fetch active battle (rehydrate after page refresh) ───────────
@@ -49,8 +51,8 @@ const useBattleStore = create((set, get) => ({
       const data = await res.json();
       if (!data.success || !data.battle) return;
 
-      const battle    = data.battle;
-      const myId      = useAuthStore.getState().user?._id?.toString();
+      const battle = data.battle;
+      const myId   = useAuthStore.getState().user?._id?.toString();
 
       const youParticipant = battle.participants.find(
         (p) => p.user._id?.toString() === myId
@@ -59,9 +61,8 @@ const useBattleStore = create((set, get) => ({
         (p) => p.user._id?.toString() !== myId
       );
 
-      // Guard: if the problem didn't populate (bad data), abort silently
       if (!battle.problem || typeof battle.problem !== "object") {
-        console.warn("[Store] fetchActiveBattle: problem not populated, skipping rehydration");
+        console.warn("[Store] fetchActiveBattle: problem not populated, skipping");
         return;
       }
 
@@ -92,7 +93,6 @@ const useBattleStore = create((set, get) => ({
             rating:   oppParticipant?.user.rating,
           },
         },
-        // Restore prior submission result if participant already submitted
         submissionResult: youParticipant?.result?.status
           ? youParticipant.result
           : null,
@@ -105,7 +105,7 @@ const useBattleStore = create((set, get) => ({
     }
   },
 
-  // ── Matchmaking actions ──────────────────────────────────────────
+  // ── Matchmaking ──────────────────────────────────────────────────
   joinQueue: (mode = "classic") => {
     const socket = getSocket();
     if (!socket) return;
@@ -136,11 +136,27 @@ const useBattleStore = create((set, get) => ({
     socket.emit("battle:run_code", { code, language, input });
   },
 
+  // FIX: Don't stop timer here. Wait for server to confirm via battle:ended.
+  // If server rejects forfeit the timer must keep running — otherwise UI
+  // freezes with no result modal ever arriving.
   forfeit: (battleId) => {
     const socket = getSocket();
-    if (!socket) return;
-    get().stopTimer();
+    if (!socket || !battleId) return;
+
+    set({ isSubmitting: true });
     socket.emit("battle:forfeit", { battleId });
+
+    // Safety net: if battle:ended never arrives in 10s, unblock the UI
+    const fallback = setTimeout(() => {
+      const state = useBattleStore.getState();
+      if (!state.battleResult) {
+        console.warn("[forfeit] battle:ended not received in 10s — unblocking UI");
+        get().stopTimer();
+        set({ isSubmitting: false, _forfeitFallback: null });
+      }
+    }, 10_000);
+
+    set({ _forfeitFallback: fallback });
   },
 
   // ── Room actions ─────────────────────────────────────────────────
@@ -202,12 +218,9 @@ const useBattleStore = create((set, get) => ({
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const left    = Math.max(0, validLimit - elapsed);
       set({ timeLeft: left });
-
       if (left === 0) {
         clearInterval(interval);
         set({ timerInterval: null });
-        // Server owns the timeout logic — no client-side forfeit to avoid
-        // double-forfeit race conditions.
       }
     }, 1000);
 
@@ -222,9 +235,12 @@ const useBattleStore = create((set, get) => ({
     }
   },
 
-  // ── Reset 1v1 ────────────────────────────────────────────────────
+  // ── Full reset ───────────────────────────────────────────────────
   reset: () => {
     get().stopTimer();
+    const fallback = get()._forfeitFallback;
+    if (fallback) clearTimeout(fallback);
+
     set({
       queueStatus:          "idle",
       queueMode:            "classic",
@@ -239,11 +255,12 @@ const useBattleStore = create((set, get) => ({
       opponentSubmitting:   false,
       battleResult:         null,
       opponentDisconnected: false,
+      _forfeitFallback:     null,
     });
   },
 }));
 
-// ── Private helpers ────────────────────────────────────────────────────────
+// ── Private helpers ───────────────────────────────────────────────────────────
 
 function _validTimeLimit(value) {
   const n = parseInt(value);
