@@ -104,5 +104,8 @@ export const endBattle = async (battleId, winnerId, reason, io) => {
 
 export const getBattleById = (id) =>
   Battle.findById(id)
-    .populate("problem", "title description difficulty examples constraints tags")
+    .populate(
+      "problem",
+      "title description difficulty examples constraints tags starterCode"
+    )
     .populate("participants.user", "username rating rank");
