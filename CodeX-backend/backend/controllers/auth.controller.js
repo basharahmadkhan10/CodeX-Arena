@@ -188,9 +188,14 @@ export const googleAuth = async (req, res, next) => {
       token,
       user: user.toSafeObject(),
     });
-  } catch (err) {
-    next(err);
-  }
+  }} catch (err) {
+  console.error("Google Auth Error:", err);
+
+  return res.status(500).json({
+    success: false,
+    message: err.message || "Google authentication failed",
+  });
+}
 };
 
 export const getMe = async (req, res) => {
