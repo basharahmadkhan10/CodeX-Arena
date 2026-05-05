@@ -2,7 +2,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://codex-arena-backend-90y5.onrender.com/api/v1",
+  baseURL:
+    import.meta.env.VITE_API_BASE_URL ||
+    "https://codex-arena-backend-90y5.onrender.com/api/v1",
   withCredentials: true,
 });
 

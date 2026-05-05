@@ -1,9 +1,11 @@
 import { create } from "zustand";
 import { getSocket } from "../services/socket";
+import useAuthStore from "./authStore";
 
 const useBattleStore = create((set, get) => ({
   // ── Matchmaking ──────────────────────────────────────────────────
   queueStatus: "idle", // idle | searching | matched
+  queueMode: "classic",
   queueSize: 0,
   queuePosition: 0,
 
@@ -143,6 +145,8 @@ const useBattleStore = create((set, get) => ({
         },
         isSubmitting: false,
       });
+
+      useAuthStore.getState().applyBattleResult(data, myUserId);
     });
 
     // ── Disconnect / reconnect ───────────────────────────────────────
@@ -200,23 +204,24 @@ const useBattleStore = create((set, get) => ({
   },
 
   // ── Matchmaking actions ──────────────────────────────────────────
-  joinQueue: () => {
+  joinQueue: (mode = "classic") => {
     const socket = getSocket();
     if (!socket) return;
     set({
       queueStatus: "searching",
+      queueMode: mode,
       submissionResult: null,
       battleResult: null,
       opponentDisconnected: false,
     });
-    socket.emit("matchmaking:join");
+    socket.emit("matchmaking:join", { mode });
   },
 
   leaveQueue: () => {
     const socket = getSocket();
     if (!socket) return;
     socket.emit("matchmaking:leave");
-    set({ queueStatus: "idle", queueSize: 0 });
+    set({ queueStatus: "idle", queueMode: "classic", queueSize: 0 });
   },
 
   // ── 1v1 Battle actions ───────────────────────────────────────────
@@ -315,6 +320,7 @@ const useBattleStore = create((set, get) => ({
     get().stopTimer();
     set({
       queueStatus: "idle",
+      queueMode: "classic",
       battle: null,
       timeLeft: 0,
       isSubmitting: false,

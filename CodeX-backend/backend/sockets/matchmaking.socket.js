@@ -5,7 +5,7 @@ import Battle from "../models/Battle.js";
 const matchmakingHandler = (io, socket) => {
   const userId = socket.user._id.toString();
 
-  socket.on("matchmaking:join", async () => {
+  socket.on("matchmaking:join", async ({ mode = "classic" } = {}) => {
     try {
   
       const freshUser = await User.findById(userId).select("currentBattleId username rating");
@@ -24,21 +24,21 @@ const matchmakingHandler = (io, socket) => {
        
         await User.findByIdAndUpdate(userId, { currentBattleId: null });
       }
-      if (MatchmakingService.isInQueue(userId)) {
+      if (MatchmakingService.isInQueue(userId, mode)) {
         MatchmakingService.updateSocketId(userId, socket.id);
         socket.emit("matchmaking:queued", {
-          position: MatchmakingService.getQueuePosition(userId),
+          position: MatchmakingService.getQueuePosition(userId, mode),
           message: "Already searching...",
         });
         return;
       }
 
       socket.emit("matchmaking:queued", {
-        position: MatchmakingService.getQueueSize() + 1,
+        position: MatchmakingService.getQueueSize(mode) + 1,
         message: "In queue — finding opponent...",
       });
 
-      await MatchmakingService.addToQueue(userId, socket.id, freshUser.username, freshUser.rating);
+      await MatchmakingService.addToQueue(userId, socket.id, freshUser.username, freshUser.rating, mode);
     } catch (err) {
       console.error("[matchmaking:join]", err.message);
       socket.emit("matchmaking:error", { message: "Failed to join queue. Try again." });

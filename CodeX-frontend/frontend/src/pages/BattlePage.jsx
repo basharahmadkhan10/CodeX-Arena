@@ -81,7 +81,7 @@ const floatingShapes = [
   { size: 58, top: "52%", right: "4%", rotate: 35, shape: "sq" },
 ];
 
-function SearchingScreen({ onCancel }) {
+function SearchingScreen({ onCancel, modeLabel = "1v1 Duel Battle" }) {
   const [dots, setDots] = useState("");
   useEffect(() => {
     const interval = setInterval(() => {
@@ -141,7 +141,7 @@ function SearchingScreen({ onCancel }) {
           </div>
           <div className="bg-[#f0fafa] border-2 border-black rounded-xl px-4 py-3 mb-6 shadow-[2px_2px_0px_#000]">
             <p className="text-xs font-black text-black/40 uppercase tracking-widest mb-0.5">Mode</p>
-            <p className="text-sm font-black text-black">⚔️ 1v1 Duel Battle</p>
+            <p className="text-sm font-black text-black">⚔️ {modeLabel}</p>
           </div>
           <button
             onClick={onCancel}
@@ -157,7 +157,7 @@ function SearchingScreen({ onCancel }) {
 
 export default function BattlePage() {
   const {
-    battle, queueStatus, timeLeft, isSubmitting, submissionResult,
+    battle, queueStatus, queueMode, timeLeft, isSubmitting, submissionResult,
     runResult, opponentStatus, opponentSubmitting, battleResult,
     opponentDisconnected, submitCode, runCode, forfeit, leaveQueue, reset,
   } = useBattleStore();
@@ -269,7 +269,10 @@ export default function BattlePage() {
     if (queueStatus === "idle" && !battle && !battleResult) navigate("/");
   }, [queueStatus, battle, battleResult, navigate]);
 
-  useEffect(() => { setCode(STARTER_CODE[language] || ""); }, [language]);
+  useEffect(() => {
+    const starter = battle?.problem?.starterCode?.[language] || STARTER_CODE[language] || "";
+    setCode(starter);
+  }, [battle, language]);
 
   // Submission result toast + tab switch
   useEffect(() => {
@@ -454,7 +457,7 @@ export default function BattlePage() {
   };
 
   if (queueStatus === "searching" && !battle) {
-    return <SearchingScreen onCancel={handleCancel} />;
+    return <SearchingScreen onCancel={handleCancel} modeLabel={queueMode === "debugging" ? "1v1 Debugging Battle" : "1v1 Duel Battle"} />;
   }
   if (!battle && !battleResult) return null;
   // If battle ended but modal not yet dismissed, keep rendering for the modal
@@ -471,6 +474,7 @@ export default function BattlePage() {
   }
 
   const { problem, you, opponent } = battle;
+  const isDebuggingBattle = problem?.mode === "debugging";
   const isTimeCritical = timeLeft <= 120;
   const myAC = submissionResult?.status === "AC";
   const remainingFullscreenExits = Math.max(0, MAX_FULLSCREEN_EXITS - fullscreenExits);
@@ -611,7 +615,14 @@ export default function BattlePage() {
             {activeTab === "problem" && problem && (
               <div className="p-5 space-y-4">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-lg font-black text-black leading-tight">{problem.title}</h2>
+                    <div className="flex flex-col gap-1">
+                      <h2 className="text-lg font-black text-black leading-tight">{problem.title}</h2>
+                      {isDebuggingBattle && (
+                        <span className="inline-flex w-fit text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border-2 border-black bg-amber-100 text-amber-700 shadow-[2px_2px_0px_#000]">
+                          Debugging Battle
+                        </span>
+                      )}
+                    </div>
                   <DiffBadge diff={problem.difficulty} />
                 </div>
                 {problem.tags?.length > 0 && (

@@ -12,3 +12,4 @@ export const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 export const JDOODLE_CLIENT_ID = process.env.JDOODLE_CLIENT_ID;
 export const JDOODLE_CLIENT_SECRET = process.env.JDOODLE_CLIENT_SECRET;
 export const BATTLE_TIME_LIMIT = 30 * 60; // 30 minutes in seconds
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;

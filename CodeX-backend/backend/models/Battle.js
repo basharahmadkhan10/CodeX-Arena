@@ -40,6 +40,11 @@ const participantSchema = new mongoose.Schema({
 const battleSchema = new mongoose.Schema(
   {
     roomId: { type: String, required: true, unique: true },
+    mode: {
+      type: String,
+      enum: ["standard", "debugging"],
+      default: "standard",
+    },
     problem: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Problem",

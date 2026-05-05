@@ -2,6 +2,15 @@ import { create } from "zustand";
 import api from "../services/api";
 import { connectSocket, disconnectSocket } from "../services/socket";
 
+function nextRank(rating, currentRank) {
+  if (rating >= 2200) return "Grandmaster";
+  if (rating >= 1800) return "Master";
+  if (rating >= 1500) return "Expert";
+  if (rating >= 1200) return "Warrior";
+  if (rating >= 1000) return "Apprentice";
+  return currentRank || "Novice";
+}
+
 const useAuthStore = create((set, get) => ({
   user: null,
   isLoading: true,
@@ -87,6 +96,33 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  googleLogin: async (credential) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await api.post("/auth/google", { credential });
+
+      if (data.token) {
+        localStorage.setItem("dd_token", data.token);
+      }
+
+      set({ user: data.user, isLoading: false });
+
+      try {
+        await connectSocket(data.token);
+      } catch (socketError) {
+        console.warn("Socket connection failed:", socketError.message);
+      }
+
+      return { success: true };
+    } catch (err) {
+      set({ isLoading: false });
+      return {
+        success: false,
+        message: err.response?.data?.message || "Google sign-in failed",
+      };
+    }
+  },
+
   logout: async () => {
     try {
       await api.post("/auth/logout");
@@ -103,6 +139,35 @@ const useAuthStore = create((set, get) => ({
   updateUser: (updates) => set((s) => ({ 
     user: s.user ? { ...s.user, ...updates } : null 
   })),
+
+  applyBattleResult: (result, myUserId) => {
+    if (!result || !myUserId) return;
+
+    const me = result.participants?.find((p) => p.userId === myUserId);
+    if (!me) return;
+
+    const currentUser = get().user;
+    const ratingChange = me.ratingChange || 0;
+    const isDraw = !result.winnerId;
+    const isWin = result.winnerId === myUserId;
+
+    set({
+      user: currentUser
+        ? {
+            ...currentUser,
+            rating: Math.max(0, (currentUser.rating || 1000) + ratingChange),
+            totalBattles: (currentUser.totalBattles || 0) + 1,
+            wins: (currentUser.wins || 0) + (isWin ? 1 : 0),
+            losses: (currentUser.losses || 0) + (!isWin && !isDraw ? 1 : 0),
+            draws: (currentUser.draws || 0) + (isDraw ? 1 : 0),
+            rank: nextRank(
+              Math.max(0, (currentUser.rating || 1000) + ratingChange),
+              currentUser.rank,
+            ),
+          }
+        : currentUser,
+    });
+  },
 }));
 
 export default useAuthStore;
