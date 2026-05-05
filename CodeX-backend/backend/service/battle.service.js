@@ -4,7 +4,7 @@ import Problem from "../models/Problem.js";
 import { runTestCases } from "./codeExecution.service.js";
 import { clearBattleTimer } from "./matchmaking.service.js";
 
-const RATING = { WIN: 55, LOSS: -25, DRAW: 5 };
+const RATING = { WIN: 50, LOSS: -25, DRAW: 5 };
 
 // ── Submit solution ───────────────────────────────────────────────────────────
 export const submitSolution = async (battleId, userId, code, language, io) => {
