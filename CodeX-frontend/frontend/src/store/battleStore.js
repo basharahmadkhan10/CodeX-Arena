@@ -29,9 +29,10 @@ const useBattleStore = create((set, get) => ({
   roomCode: null,
   roomMembers: [],
   roomStatus: "idle",
-  isRoomHost: false,
-  roomBattle: null,
   roomError: null,
+
+  // Socket connected flag to prevent duplicate listeners
+  _listenersInitialized: false,
 
   // ── Socket listener init (call once after login / socket connect) ─
   initSocketListeners: () => {
@@ -39,6 +40,9 @@ const useBattleStore = create((set, get) => ({
     if (!socket) return;
 
     // Avoid double-attaching
+    const store = get();
+    if (store._listenersInitialized) return;
+    
     socket.off("matchmaking:queued");
     socket.off("matchmaking:queue_update");
     socket.off("matchmaking:matched");
@@ -73,9 +77,29 @@ const useBattleStore = create((set, get) => ({
 
     // ── Battle started ───────────────────────────────────────────────
     socket.on("battle:started", (data) => {
-      // data: { roomId, battleId, problem, you, opponent, timeLimit, startedAt }
+      const userId = useAuthStore.getState().user?._id;
+
+      const you = data.participants?.find(
+        (p) => (p.user?._id || p.user) === userId
+      );
+
+      const opponent = data.participants?.find(
+        (p) => (p.user?._id || p.user) !== userId
+      );
+
+      // Safety check for timeLimit - ensure it's a valid number
+      const timeLimit = data.timeLimit && !isNaN(data.timeLimit) ? data.timeLimit : 60; // Default to 60 seconds if invalid
+      
+      // Reset any existing timer first
+      get().stopTimer();
+
       set({
-        battle: data,
+        battle: {
+          ...data,
+          you,
+          opponent,
+          timeLimit: timeLimit, // Store the validated timeLimit in battle object
+        },
         queueStatus: "matched",
         battleResult: null,
         submissionResult: null,
@@ -84,8 +108,11 @@ const useBattleStore = create((set, get) => ({
         opponentSubmitting: false,
         opponentDisconnected: false,
         isSubmitting: false,
+        timeLeft: timeLimit, // Initialize timeLeft immediately
       });
-      get().startTimer(data.timeLimit);
+
+      // Start the timer with validated timeLimit
+      get().startTimer(timeLimit);
     });
 
     // ── Submission results ───────────────────────────────────────────
@@ -119,12 +146,12 @@ const useBattleStore = create((set, get) => ({
       get().stopTimer();
 
       const battle = get().battle;
-      const myUserId = battle?.you?.userId;
+      const myUserId = battle?.you?.userId || battle?.you?._id;
 
       // Compute iWon / isDraw on participants
       const enrichedParticipants = (data.participants || []).map((p) => ({
         ...p,
-        isMe: p.userId === myUserId,
+        isMe: (p.userId === myUserId || p.user?._id === myUserId),
       }));
 
       let iWon = false;
@@ -144,9 +171,14 @@ const useBattleStore = create((set, get) => ({
           isDraw,
         },
         isSubmitting: false,
+        opponentSubmitting: false,
       });
 
-      useAuthStore.getState().applyBattleResult(data, myUserId);
+      // Only apply battle result if user exists and function is available
+      const authStore = useAuthStore.getState();
+      if (authStore.applyBattleResult) {
+        authStore.applyBattleResult(data, myUserId);
+      }
     });
 
     // ── Disconnect / reconnect ───────────────────────────────────────
@@ -201,12 +233,16 @@ const useBattleStore = create((set, get) => ({
     socket.on("room:battle_started", (data) => {
       set({ roomBattle: data, roomStatus: "in_battle" });
     });
+
+    set({ _listenersInitialized: true });
   },
 
   // ── Matchmaking actions ──────────────────────────────────────────
   joinQueue: (mode = "classic") => {
     const socket = getSocket();
     if (!socket) return;
+    // Reset battle state before joining new queue
+    get().reset();
     set({
       queueStatus: "searching",
       queueMode: mode,
@@ -221,7 +257,7 @@ const useBattleStore = create((set, get) => ({
     const socket = getSocket();
     if (!socket) return;
     socket.emit("matchmaking:leave");
-    set({ queueStatus: "idle", queueMode: "classic", queueSize: 0 });
+    set({ queueStatus: "idle", queueMode: "classic", queueSize: 0, queuePosition: 0 });
   },
 
   // ── 1v1 Battle actions ───────────────────────────────────────────
@@ -242,6 +278,7 @@ const useBattleStore = create((set, get) => ({
   forfeit: (battleId) => {
     const socket = getSocket();
     if (!socket) return;
+    get().stopTimer();
     socket.emit("battle:forfeit", { battleId });
   },
 
@@ -296,14 +333,31 @@ const useBattleStore = create((set, get) => ({
     const existing = get().timerInterval;
     if (existing) clearInterval(existing);
 
+    // Validate timeLimit - ensure it's a positive number
+    let validTimeLimit = parseInt(timeLimit);
+    if (isNaN(validTimeLimit) || validTimeLimit <= 0) {
+      console.warn(`Invalid timeLimit received: ${timeLimit}, defaulting to 60 seconds`);
+      validTimeLimit = 60;
+    }
+
     const startTime = Date.now();
-    set({ timeLeft: timeLimit });
+    set({ timeLeft: validTimeLimit });
 
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const left = Math.max(0, timeLimit - elapsed);
+      const left = Math.max(0, validTimeLimit - elapsed);
       set({ timeLeft: left });
-      if (left === 0) clearInterval(interval);
+      
+      if (left === 0) {
+        clearInterval(interval);
+        set({ timerInterval: null });
+        
+        // Auto-forfeit when time runs out
+        const battle = get().battle;
+        if (battle?._id && !get().submissionResult) {
+          get().forfeit(battle._id);
+        }
+      }
     }, 1000);
 
     set({ timerInterval: interval });
@@ -311,8 +365,10 @@ const useBattleStore = create((set, get) => ({
 
   stopTimer: () => {
     const interval = get().timerInterval;
-    if (interval) clearInterval(interval);
-    set({ timerInterval: null });
+    if (interval) {
+      clearInterval(interval);
+      set({ timerInterval: null });
+    }
   },
 
   // ── Reset 1v1 ────────────────────────────────────────────────────
@@ -321,6 +377,8 @@ const useBattleStore = create((set, get) => ({
     set({
       queueStatus: "idle",
       queueMode: "classic",
+      queueSize: 0,
+      queuePosition: 0,
       battle: null,
       timeLeft: 0,
       isSubmitting: false,
