@@ -16,6 +16,11 @@ const exampleSchema = new mongoose.Schema({
 
 const problemSchema = new mongoose.Schema(
   {
+    mode: {
+      type: String,
+      enum: ["standard", "debugging"],
+      default: "standard",
+    },
     title: { type: String, required: true },
     slug: { type: String, required: true, unique: true }, 
     description: { type: String, required: true },
@@ -28,6 +33,13 @@ const problemSchema = new mongoose.Schema(
     constraints: String,
     examples: [exampleSchema],
     testCases: [testCaseSchema],
+    starterCode: {
+      javascript: String,
+      python: String,
+      java: String,
+      cpp: String,
+      c: String,
+    },
     timeLimit: { type: Number, default: 2000 }, 
     memoryLimit: { type: Number, default: 256 }, 
     isActive: { type: Boolean, default: true },

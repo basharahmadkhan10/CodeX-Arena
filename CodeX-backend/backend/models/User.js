@@ -24,8 +24,22 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
+      default: null,
+    },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    googleId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    avatar: {
+      type: String,
+      default: null,
     },
     rating: { type: Number, default: 1000 },
     wins: { type: Number, default: 0 },
@@ -60,11 +74,13 @@ userSchema.index({ rating: -1 });
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
+  if (!this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

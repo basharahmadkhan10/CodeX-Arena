@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -7,8 +7,78 @@ import useAuthStore from "../store/authStore";
 export default function AuthPage() {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ username: "", email: "", password: "" });
-  const { login, register, isLoading } = useAuthStore();
+  const googleButtonRef = useRef(null);
+  const { login, register, googleLogin, isLoading } = useAuthStore();
   const navigate = useNavigate();
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return;
+
+    const loadScript = () => {
+      return new Promise((resolve, reject) => {
+        if (window.google?.accounts?.id) {
+          resolve();
+          return;
+        }
+
+        const existing = document.getElementById("google-gis-script");
+        if (existing) {
+          existing.addEventListener("load", resolve, { once: true });
+          existing.addEventListener("error", reject, { once: true });
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.id = "google-gis-script";
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    };
+
+    let cancelled = false;
+
+    loadScript()
+      .then(() => {
+        if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
+
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response) => {
+            const result = await googleLogin(response.credential);
+            if (result.success) {
+              toast.success(mode === "login" ? "Welcome back!" : "Account created!");
+              navigate("/");
+            } else {
+              toast.error(result.message);
+            }
+          },
+        });
+
+        googleButtonRef.current.innerHTML = "";
+        window.google.accounts.id.renderButton(googleButtonRef.current, {
+          type: "standard",
+          theme: "outline",
+          size: "large",
+          shape: "pill",
+          text: "continue_with",
+          width: 372,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          toast.error("Google sign-in could not be loaded");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [googleClientId, googleLogin, mode, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -249,6 +319,24 @@ export default function AuthPage() {
                 )}
               </button>
             </form>
+
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-black/20" />
+              <span className="text-[11px] font-black uppercase tracking-[0.3em] text-black/45">
+                or
+              </span>
+              <div className="h-px flex-1 bg-black/20" />
+            </div>
+
+            <div className="flex justify-center">
+              <div ref={googleButtonRef} className="w-full flex justify-center overflow-hidden" />
+            </div>
+
+            {!googleClientId && (
+              <p className="mt-3 text-center text-xs font-bold text-black/50">
+                Google sign-in is not configured. Set VITE_GOOGLE_CLIENT_ID in the frontend env.
+              </p>
+            )}
           </div>
         </motion.div>
       </div>

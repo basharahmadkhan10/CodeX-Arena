@@ -17,6 +17,21 @@ const modes = [
     available: true,
     route: "/battle/1v1",
     isPaid: false,
+    queueMode: "classic",
+  },
+  {
+    id: "debug",
+    title: "1v1 Debugging Battle",
+    subtitle: "Fix-it Duel",
+    description:
+      "Face a rival on a buggy starter solution. Fix the mistakes, make the code pass, and submit faster than your opponent.",
+    icon: "🛠️",
+    players: "2 Players",
+    badge: "LIVE", // ← was SOON
+    available: true, // ← was false
+    route: "/battle/debugging",
+    isPaid: false,
+    queueMode: "debugging",
   },
   {
     id: "room",
@@ -30,19 +45,7 @@ const modes = [
     available: true, // ← was false
     route: "/battle/room", // ← was null
     isPaid: false,
-  },
-  {
-    id: "10v10",
-    title: "10-Room Battle",
-    subtitle: "Squad Mode",
-    description:
-      "Compete in a 10-player open room. Last coder standing wins. Fast rounds, brutal competition.",
-    icon: "🏟️",
-    players: "10 Players",
-    badge: "SOON",
-    available: false,
-    route: null,
-    isPaid: false,
+    queueMode: "classic",
   },
   {
     id: "tournament",
@@ -56,6 +59,7 @@ const modes = [
     available: false,
     route: null,
     isPaid: true,
+    queueMode: "classic",
   },
 ];
 
@@ -91,7 +95,13 @@ export default function ModesPage() {
     }
 
     if (mode.id === "1v1") {
-      joinQueue();
+      joinQueue(mode.queueMode || "classic");
+      navigate(mode.route);
+      return;
+    }
+
+    if (mode.id === "debug") {
+      joinQueue(mode.queueMode || "debugging");
       navigate(mode.route);
       return;
     }

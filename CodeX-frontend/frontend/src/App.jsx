@@ -91,6 +91,7 @@ export default function App() {
           <Route path="/" element={<RequireAuth><ModesPage /></RequireAuth>} />
           <Route path="/dashboard" element={<RequireAuth><HomePage /></RequireAuth>} />
           <Route path="/battle/1v1" element={<RequireAuth><BattlePage /></RequireAuth>} />
+          <Route path="/battle/debugging" element={<RequireAuth><BattlePage /></RequireAuth>} />
           <Route path="/battle/room" element={<RequireAuth><RoomBattlePage /></RequireAuth>} />
           <Route path="/battle/room/arena" element={<RequireAuth><RoomArenaPage /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />

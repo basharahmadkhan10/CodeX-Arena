@@ -5,8 +5,6 @@ import useAuthStore from "../store/authStore";
 import toast from "react-hot-toast";
 
 const useSocketEvents = () => {
-  const updateUser = useAuthStore((s) => s.updateUser);
-
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
@@ -99,17 +97,7 @@ const useSocketEvents = () => {
       });
 
       const myId = useAuthStore.getState().user?._id;
-      const me = result.participants?.find((p) => p.userId === myId);
-      if (me && me.ratingChange !== undefined) {
-        const currentUser = useAuthStore.getState().user;
-        updateUser({
-          rating: (currentUser?.rating || 1000) + me.ratingChange,
-          wins: currentUser?.wins + (result.winnerId === myId ? 1 : 0),
-          losses:
-            currentUser?.losses +
-            (result.winnerId && result.winnerId !== myId ? 1 : 0),
-        });
-      }
+      useAuthStore.getState().applyBattleResult(result, myId);
     };
 
     const onOpponentDisconnected = () => {

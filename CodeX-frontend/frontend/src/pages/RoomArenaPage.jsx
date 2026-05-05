@@ -513,6 +513,7 @@ export default function RoomArenaPage() {
     socket.on("room:battle_ended", (result) => {
       stopTimer();
       setBattleResult(result);
+      useAuthStore.getState().applyBattleResult(result, myUserId);
     });
 
     return () => {

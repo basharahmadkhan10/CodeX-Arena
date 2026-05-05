@@ -4,6 +4,7 @@ import connectDB from "./config/database.js";
 import { PORT, NODE_ENV } from "./config/constants.js";
 import Problem from "./models/Problem.js";
 import { PROBLEMS_SEED } from "./data/problems.seed.js";
+import { DEBUGGING_PROBLEMS_SEED } from "./data/debugging.seed.js";
 
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION! Shutting down...");
@@ -13,18 +14,19 @@ process.on("uncaughtException", (err) => {
 
 const seedProblems = async () => {
   try {
-    const count = await Problem.countDocuments({ isActive: true });
-    if (count === 0) {
-      console.log(`Seeding ${PROBLEMS_SEED.length} problems...`);
-      let created = 0;
-      for (const prob of PROBLEMS_SEED) {
-        const exists = await Problem.findOne({ slug: prob.slug });
-        if (!exists) { await Problem.create(prob); created++; }
-      }
-      console.log(`Seeded ${created} problems`);
-    } else {
-      console.log(` ${count} problems in DB`);
-    }
+    const allSeeds = [...PROBLEMS_SEED, ...DEBUGGING_PROBLEMS_SEED];
+    console.log(`Seeding ${allSeeds.length} problems if missing...`);
+
+    const operations = allSeeds.map((problem) => ({
+      updateOne: {
+        filter: { slug: problem.slug },
+        update: { $setOnInsert: problem },
+        upsert: true,
+      },
+    }));
+
+    const result = await Problem.bulkWrite(operations, { ordered: false });
+    console.log(`Seed sync complete. Inserted ${result.upsertedCount || 0} missing problems.`);
   } catch (err) {
     console.error("Seed error:", err.message);
   }
