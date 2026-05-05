@@ -1,17 +1,18 @@
+// src/controllers/battle.controller.js
 import { getBattleById } from "../service/battle.service.js";
 import Battle from "../models/Battle.js";
 
 export const getActiveBattle = async (req, res, next) => {
   try {
     const battle = await Battle.findOne({
-    "participants.user": req.user._id,
-    status: "active",
+      "participants.user": req.user._id,
+      status: "active",
     })
-   .populate(
-    "problem",
-    "title description difficulty examples constraints tags starterCode"
-  )
-  .populate("participants.user", "username rating rank");
+      .populate(
+        "problem",
+        "title description difficulty examples constraints tags starterCode testCases mode slug"
+      )
+      .populate("participants.user", "username rating rank");
 
     if (!battle) return res.json({ success: true, battle: null });
 
@@ -33,9 +34,9 @@ export const getBattle = async (req, res, next) => {
 
 export const getUserBattleHistory = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
+    const page  = parseInt(req.query.page)  || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const skip  = (page - 1) * limit;
 
     const battles = await Battle.find({
       "participants.user": req.user._id,
@@ -52,7 +53,13 @@ export const getUserBattleHistory = async (req, res, next) => {
       status: "completed",
     });
 
-    res.json({ success: true, battles, total, page, pages: Math.ceil(total / limit) });
+    res.json({
+      success: true,
+      battles,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    });
   } catch (err) {
     next(err);
   }
