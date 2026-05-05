@@ -9,29 +9,27 @@ const useSocketEvents = () => {
     const socket = getSocket();
     if (!socket) return;
 
-    // ── Rehydrate battle on page refresh ────────────────────────
+    // Rehydrate battle on page refresh (e.g. user hard-refreshes mid-battle)
     const state = useBattleStore.getState();
     if (!state.battle && state.queueStatus !== "searching") {
       useBattleStore.getState().fetchActiveBattle();
     }
 
-    // ── Matchmaking ─────────────────────────────────────────────
+    // ── Matchmaking ───────────────────────────────────────────────
+
     const onQueueSize = (size) => {
       useBattleStore.setState({ queueSize: size });
     };
 
     const onQueued = ({ position }) => {
-      useBattleStore.setState({
-        queueStatus: "searching",
-        queuePosition: position,
-      });
-      // 5-minute timeout fallback
+      useBattleStore.setState({ queueStatus: "searching", queuePosition: position });
+      // 5-minute client-side safety fallback
       setTimeout(() => {
         if (useBattleStore.getState().queueStatus === "searching") {
           useBattleStore.getState().leaveQueue();
           toast.error("No opponent found. Try again.");
         }
-      }, 300000);
+      }, 300_000);
     };
 
     const onMatchmakingError = ({ message }) => {
@@ -39,36 +37,37 @@ const useSocketEvents = () => {
       toast.error(message || "Matchmaking failed. Try again.");
     };
 
-    // ── Battle matched ───────────────────────────────────────────
+    // ── Battle matched ────────────────────────────────────────────
+    // The server emits "battle:matched" exactly ONCE per player.
+    // We no longer listen to "battle:started" — that event was a
+    // server-side duplicate that fired last with only {roomId, battleId},
+    // wiping out battle.problem and causing a blank battle page.
+
     const onMatched = (data) => {
       console.log("⚔️ battle:matched received", data.roomId);
 
-      // IMPORTANT: Do NOT emit battle:join_room here.
-      // The server already added both sockets to the room in _createBattle.
-      // Emitting join_room hits a non-existent handler and will break
-      // after a reconnect since the new socket ID is unknown.
-
       useBattleStore.setState({
-        queueStatus: "matched",
-        battle: data,
-        submissionResult: null,
-        opponentStatus: null,
-        opponentSubmitting: false,
+        queueStatus:          "matched",
+        battle:               data,          // data already has the right shape from the server
+        submissionResult:     null,
+        opponentStatus:       null,
+        opponentSubmitting:   false,
         opponentDisconnected: false,
-        battleResult: null,
+        battleResult:         null,
       });
 
       const timeLimit = parseInt(data.timeLimit) || 1800;
       useBattleStore.getState().startTimer(timeLimit);
     };
 
-    // ── During battle ────────────────────────────────────────────
-    const onSubmissionResult = (result) => {
-      useBattleStore.setState({ isSubmitting: false, submissionResult: result });
-    };
+    // ── During battle ─────────────────────────────────────────────
 
     const onSubmissionPending = () => {
       useBattleStore.setState({ isSubmitting: true });
+    };
+
+    const onSubmissionResult = (result) => {
+      useBattleStore.setState({ isSubmitting: false, submissionResult: result });
     };
 
     const onOpponentSubmitting = () => {
@@ -77,14 +76,13 @@ const useSocketEvents = () => {
     };
 
     const onSubmissionUpdate = (data) => {
-      const battle = useBattleStore.getState().battle;
-      const myId = battle?.you?.userId?.toString();
+      const myId = useBattleStore.getState().battle?.you?.userId?.toString();
       if (data.userId?.toString() !== myId) {
         useBattleStore.setState({
           opponentStatus: {
             status: data.status,
             passed: data.passed,
-            total: data.total,
+            total:  data.total,
           },
           opponentSubmitting: false,
         });
@@ -95,16 +93,17 @@ const useSocketEvents = () => {
       useBattleStore.setState({ runResult: result });
     };
 
-    // ── Battle ended ─────────────────────────────────────────────
+    // ── Battle ended ──────────────────────────────────────────────
+
     const onBattleEnded = (result) => {
       useBattleStore.getState().stopTimer();
       useBattleStore.setState({
-        battleResult: result,
-        isSubmitting: false,
-        queueStatus: "idle",
+        battleResult:  result,
+        isSubmitting:  false,
+        queueStatus:   "idle",
       });
 
-      const myId = useAuthStore.getState().user?._id;
+      const myId        = useAuthStore.getState().user?._id;
       const applyResult = useAuthStore.getState().applyBattleResult;
       if (applyResult) applyResult(result, myId);
     };
@@ -122,7 +121,7 @@ const useSocketEvents = () => {
       toast.error(message || "Submission failed. Try again.");
     };
 
-    // ── Reconnect: rejoin the battle room ────────────────────────
+    // ── Reconnect: rejoin the battle room ─────────────────────────
     // After a socket reconnect the socket loses its room membership.
     // Re-emit battle:rejoin so the server re-adds us.
     const onReconnect = () => {
@@ -130,19 +129,19 @@ const useSocketEvents = () => {
       if (battle?.roomId) {
         console.log("🔄 Rejoining battle room after reconnect:", battle.roomId);
         socket.emit("battle:rejoin", {
-          roomId: battle.roomId,
+          roomId:   battle.roomId,
           battleId: battle.battleId,
         });
         toast("Reconnected to battle!", { icon: "🔄", duration: 2000 });
       }
     };
 
-    // ── Register listeners ───────────────────────────────────────
+    // ── Register listeners ────────────────────────────────────────
+
     socket.on("matchmaking:queue_size",       onQueueSize);
     socket.on("matchmaking:queued",           onQueued);
     socket.on("matchmaking:error",            onMatchmakingError);
-    socket.on("battle:matched",               onMatched);
-    socket.on("battle:started",               onMatched); // server fires both; handler is identical
+    socket.on("battle:matched",               onMatched);   // single source of truth
     socket.on("battle:submission_pending",    onSubmissionPending);
     socket.on("battle:submission_result",     onSubmissionResult);
     socket.on("battle:opponent_submitting",   onOpponentSubmitting);
@@ -159,7 +158,6 @@ const useSocketEvents = () => {
       socket.off("matchmaking:queued",           onQueued);
       socket.off("matchmaking:error",            onMatchmakingError);
       socket.off("battle:matched",               onMatched);
-      socket.off("battle:started",               onMatched);
       socket.off("battle:submission_pending",    onSubmissionPending);
       socket.off("battle:submission_result",     onSubmissionResult);
       socket.off("battle:opponent_submitting",   onOpponentSubmitting);
