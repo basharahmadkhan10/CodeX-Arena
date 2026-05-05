@@ -4,11 +4,14 @@ import Battle from "../models/Battle.js";
 export const getActiveBattle = async (req, res, next) => {
   try {
     const battle = await Battle.findOne({
-      "participants.user": req.user._id,
-      status: "active",
+    "participants.user": req.user._id,
+    status: "active",
     })
-      .populate("problem", "title description difficulty examples constraints tags")
-      .populate("participants.user", "username rating rank");
+   .populate(
+    "problem",
+    "title description difficulty examples constraints tags starterCode"
+  )
+  .populate("participants.user", "username rating rank");
 
     if (!battle) return res.json({ success: true, battle: null });
 
