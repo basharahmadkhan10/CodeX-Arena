@@ -30,76 +30,129 @@ const useBattleStore = create((set, get) => ({
   roomMembers: [],
   roomStatus: "idle",
   roomError: null,
+  isRoomHost: false,
+  roomBattle: null,
 
-  // Socket connected flag to prevent duplicate listeners
+  // Socket listener flag to prevent duplicates
   _listenersInitialized: false,
 
-  // ── Socket listener init (call once after login / socket connect) ─
+  // ── Socket listener init ─────────────────────────────────────────
   initSocketListeners: () => {
     const socket = getSocket();
     if (!socket) return;
 
-    // Avoid double-attaching
-    const store = get();
-    if (store._listenersInitialized) return;
-    
-    socket.off("matchmaking:queued");
-    socket.off("matchmaking:queue_update");
-    socket.off("matchmaking:matched");
-    socket.off("battle:started");
-    socket.off("battle:submission_result");
-    socket.off("battle:submission_pending");
-    socket.off("battle:opponent_submitting");
-    socket.off("battle:opponent_submission");
-    socket.off("battle:ended");
-    socket.off("battle:run_result");
-    socket.off("battle:opponent_disconnected");
-    socket.off("battle:opponent_reconnected");
-    socket.off("room:created");
-    socket.off("room:joined");
-    socket.off("room:updated");
-    socket.off("room:error");
-    socket.off("room:left");
-    socket.off("room:battle_started");
+    if (get()._listenersInitialized) return;
 
-    // ── Matchmaking ─────────────────────────────────────────────────
-    socket.on("matchmaking:queued", () => {
-      set({ queueStatus: "searching" });
+    // Clean slate — remove any stale listeners
+    const events = [
+      "matchmaking:queued",
+      "matchmaking:queue_update",
+      "matchmaking:queue_size",
+      "matchmaking:matched",
+      "matchmaking:error",
+      "battle:matched",
+      "battle:started",
+      "battle:start",
+      "battle:submission_result",
+      "battle:submission_pending",
+      "battle:opponent_submitting",
+      "battle:opponent_submission",
+      "battle:submission_update",
+      "battle:ended",
+      "battle:run_result",
+      "battle:opponent_disconnected",
+      "battle:opponent_reconnected",
+      "battle:error",
+      "battle:rejoined",
+      "room:created",
+      "room:joined",
+      "room:updated",
+      "room:error",
+      "room:left",
+      "room:battle_started",
+    ];
+    events.forEach((e) => socket.off(e));
+
+    // ── Matchmaking ────────────────────────────────────────────────
+
+    socket.on("matchmaking:queued", ({ position, queueSize } = {}) => {
+      set({
+        queueStatus: "searching",
+        queuePosition: position || 0,
+        queueSize: queueSize || 0,
+      });
     });
 
-    socket.on("matchmaking:queue_update", ({ size, position }) => {
-      set({ queueSize: size, queuePosition: position });
+    socket.on("matchmaking:queue_update", ({ size, position } = {}) => {
+      set({ queueSize: size || 0, queuePosition: position || 0 });
     });
 
-    socket.on("matchmaking:matched", (data) => {
+    socket.on("matchmaking:queue_size", (size) => {
+      set({ queueSize: typeof size === "number" ? size : 0 });
+    });
+
+    socket.on("matchmaking:matched", () => {
       set({ queueStatus: "matched" });
     });
 
-    // ── Battle started ───────────────────────────────────────────────
-    socket.on("battle:started", (data) => {
-      const userId = useAuthStore.getState().user?._id;
+    socket.on("matchmaking:error", ({ message } = {}) => {
+      set({ queueStatus: "idle" });
+      console.error("[Matchmaking] Error:", message);
+    });
 
-      const you = data.participants?.find(
-        (p) => (p.user?._id || p.user) === userId
-      );
+    // ── Battle matched (primary event from matchmaking service) ────
+    // This fires first — store the full battle payload
+    socket.on("battle:matched", (data) => {
+      console.log("⚔️ battle:matched", data.roomId);
+      const myId = useAuthStore.getState().user?._id?.toString();
 
-      const opponent = data.participants?.find(
-        (p) => (p.user?._id || p.user) !== userId
-      );
+      // data already has you / opponent from matchmaking service
+      // but also guard with participants if present
+      const you = data.you || _extractParticipant(data, myId, true);
+      const opponent = data.opponent || _extractParticipant(data, myId, false);
 
-      // Safety check for timeLimit - ensure it's a valid number
-      const timeLimit = data.timeLimit && !isNaN(data.timeLimit) ? data.timeLimit : 60; // Default to 60 seconds if invalid
-      
-      // Reset any existing timer first
+      const timeLimit = _validTimeLimit(data.timeLimit);
       get().stopTimer();
 
       set({
+        queueStatus: "matched",
         battle: {
           ...data,
           you,
           opponent,
-          timeLimit: timeLimit, // Store the validated timeLimit in battle object
+          timeLimit,
         },
+        battleResult: null,
+        submissionResult: null,
+        runResult: null,
+        opponentStatus: null,
+        opponentSubmitting: false,
+        opponentDisconnected: false,
+        isSubmitting: false,
+        timeLeft: timeLimit,
+      });
+
+      get().startTimer(timeLimit);
+    });
+
+    // ── Battle started (sometimes fired after matched) ─────────────
+    socket.on("battle:started", (data) => {
+      // Only re-process if we don't already have a full battle object
+      // (avoids overwriting the richer battle:matched payload)
+      const existing = get().battle;
+      if (existing?.problem && data.roomId === existing?.roomId) return;
+
+      console.log("🟢 battle:started", data.roomId);
+      const myId = useAuthStore.getState().user?._id?.toString();
+
+      const you = data.you || _extractParticipant(data, myId, true);
+      const opponent = data.opponent || _extractParticipant(data, myId, false);
+      const timeLimit = _validTimeLimit(data.timeLimit);
+
+      get().stopTimer();
+
+      set({
+        battle: { ...data, you, opponent, timeLimit },
         queueStatus: "matched",
         battleResult: null,
         submissionResult: null,
@@ -108,80 +161,98 @@ const useBattleStore = create((set, get) => ({
         opponentSubmitting: false,
         opponentDisconnected: false,
         isSubmitting: false,
-        timeLeft: timeLimit, // Initialize timeLeft immediately
+        timeLeft: timeLimit,
       });
 
-      // Start the timer with validated timeLimit
       get().startTimer(timeLimit);
     });
 
-    // ── Submission results ───────────────────────────────────────────
+    // ── battle:start (room-level broadcast — just a signal) ────────
+    socket.on("battle:start", () => {
+      // No-op: actual data arrives via battle:matched / battle:started
+    });
+
+    // ── Submissions ────────────────────────────────────────────────
+
     socket.on("battle:submission_pending", () => {
       set({ isSubmitting: true });
     });
 
     socket.on("battle:submission_result", (result) => {
-      // result: { status, passed, total, results, errorMessage }
       set({ isSubmitting: false, submissionResult: result });
     });
 
-    // Opponent submitted
     socket.on("battle:opponent_submitting", () => {
       set({ opponentSubmitting: true });
+      // Auto-clear if server forgets to send update
+      setTimeout(() => set({ opponentSubmitting: false }), 5000);
     });
 
+    // Legacy event name
     socket.on("battle:opponent_submission", (data) => {
-      // data: { status, passed, total }
       set({ opponentSubmitting: false, opponentStatus: data });
     });
 
-    // ── Run result ───────────────────────────────────────────────────
+    // New event name used in matchmaking service
+    socket.on("battle:submission_update", (data) => {
+      const myId =
+        get().battle?.you?.userId ||
+        get().battle?.you?._id ||
+        useAuthStore.getState().user?._id?.toString();
+
+      if (data.userId?.toString() !== myId?.toString()) {
+        set({
+          opponentStatus: {
+            status: data.status,
+            passed: data.passed,
+            total: data.total,
+          },
+          opponentSubmitting: false,
+        });
+      }
+    });
+
+    // ── Run result ─────────────────────────────────────────────────
+
     socket.on("battle:run_result", (result) => {
       set({ runResult: result });
     });
 
-    // ── Battle ended ─────────────────────────────────────────────────
+    // ── Battle ended ───────────────────────────────────────────────
+
     socket.on("battle:ended", (data) => {
-      // data: { winnerId, reason, duration, participants: [{ userId, username, ratingChange, ... }] }
       get().stopTimer();
 
       const battle = get().battle;
-      const myUserId = battle?.you?.userId || battle?.you?._id;
+      const myId = (
+        battle?.you?.userId ||
+        battle?.you?._id ||
+        useAuthStore.getState().user?._id
+      )?.toString();
 
-      // Compute iWon / isDraw on participants
       const enrichedParticipants = (data.participants || []).map((p) => ({
         ...p,
-        isMe: (p.userId === myUserId || p.user?._id === myUserId),
+        isMe: p.userId?.toString() === myId,
       }));
 
-      let iWon = false;
-      let isDraw = false;
-
-      if (!data.winnerId) {
-        isDraw = true;
-      } else {
-        iWon = data.winnerId === myUserId;
-      }
+      const isDraw = !data.winnerId;
+      const iWon = !isDraw && data.winnerId?.toString() === myId;
 
       set({
-        battleResult: {
-          ...data,
-          participants: enrichedParticipants,
-          iWon,
-          isDraw,
-        },
+        battleResult: { ...data, participants: enrichedParticipants, iWon, isDraw },
         isSubmitting: false,
         opponentSubmitting: false,
+        queueStatus: "idle",
       });
 
-      // Only apply battle result if user exists and function is available
       const authStore = useAuthStore.getState();
       if (authStore.applyBattleResult) {
-        authStore.applyBattleResult(data, myUserId);
+        authStore.applyBattleResult(data, myId);
       }
     });
 
-    // ── Disconnect / reconnect ───────────────────────────────────────
+    // ── Disconnect / reconnect ─────────────────────────────────────
+
     socket.on("battle:opponent_disconnected", () => {
       set({ opponentDisconnected: true });
     });
@@ -190,7 +261,17 @@ const useBattleStore = create((set, get) => ({
       set({ opponentDisconnected: false });
     });
 
-    // ── Room events ──────────────────────────────────────────────────
+    socket.on("battle:error", ({ message } = {}) => {
+      set({ isSubmitting: false });
+      console.error("[Battle] Error:", message);
+    });
+
+    socket.on("battle:rejoined", ({ roomId }) => {
+      console.log("✅ Rejoined battle room:", roomId);
+    });
+
+    // ── Room events ────────────────────────────────────────────────
+
     socket.on("room:created", ({ code, members, isHost }) => {
       set({
         roomCode: code,
@@ -237,19 +318,76 @@ const useBattleStore = create((set, get) => ({
     set({ _listenersInitialized: true });
   },
 
+  // ── Fetch active battle (rehydrate on page refresh) ──────────────
+  fetchActiveBattle: async () => {
+    try {
+      const token = useAuthStore.getState().token;
+      const res = await fetch("/api/battles/active", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (!data.success || !data.battle) return;
+
+      const battle = data.battle;
+      const myId = useAuthStore.getState().user?._id?.toString();
+
+      const youParticipant = battle.participants.find(
+        (p) => p.user._id?.toString() === myId
+      );
+      const oppParticipant = battle.participants.find(
+        (p) => p.user._id?.toString() !== myId
+      );
+
+      const problem = _reshapeProblem(battle.problem, battle.mode);
+
+      const timeLimit = _validTimeLimit(battle.timeLimit);
+      const elapsed = Math.floor((Date.now() - new Date(battle.startedAt)) / 1000);
+      const remaining = Math.max(0, timeLimit - elapsed);
+
+      get().stopTimer();
+
+      set({
+        queueStatus: "matched",
+        battle: {
+          roomId: battle.roomId,
+          battleId: battle._id.toString(),
+          problem,
+          startedAt: battle.startedAt,
+          timeLimit,
+          mode: battle.mode,
+          you: {
+            userId: youParticipant?.user._id?.toString(),
+            username: youParticipant?.user.username,
+            rating: youParticipant?.user.rating,
+          },
+          opponent: {
+            userId: oppParticipant?.user._id?.toString(),
+            username: oppParticipant?.user.username,
+            rating: oppParticipant?.user.rating,
+          },
+        },
+        submissionResult: youParticipant?.result?.status
+          ? youParticipant.result
+          : null,
+        timeLeft: remaining,
+      });
+
+      get().startTimer(remaining);
+    } catch (err) {
+      console.error("[Store] fetchActiveBattle failed:", err);
+    }
+  },
+
   // ── Matchmaking actions ──────────────────────────────────────────
+
   joinQueue: (mode = "classic") => {
     const socket = getSocket();
     if (!socket) return;
-    // Reset battle state before joining new queue
     get().reset();
-    set({
-      queueStatus: "searching",
-      queueMode: mode,
-      submissionResult: null,
-      battleResult: null,
-      opponentDisconnected: false,
-    });
+    set({ queueStatus: "searching", queueMode: mode });
     socket.emit("matchmaking:join", { mode });
   },
 
@@ -261,6 +399,7 @@ const useBattleStore = create((set, get) => ({
   },
 
   // ── 1v1 Battle actions ───────────────────────────────────────────
+
   submitCode: (battleId, code, language) => {
     const socket = getSocket();
     if (!socket) return;
@@ -283,6 +422,7 @@ const useBattleStore = create((set, get) => ({
   },
 
   // ── Room actions ─────────────────────────────────────────────────
+
   createRoom: () => {
     const socket = getSocket();
     if (!socket) return;
@@ -329,34 +469,25 @@ const useBattleStore = create((set, get) => ({
   },
 
   // ── Timer ────────────────────────────────────────────────────────
+
   startTimer: (timeLimit) => {
     const existing = get().timerInterval;
     if (existing) clearInterval(existing);
 
-    // Validate timeLimit - ensure it's a positive number
-    let validTimeLimit = parseInt(timeLimit);
-    if (isNaN(validTimeLimit) || validTimeLimit <= 0) {
-      console.warn(`Invalid timeLimit received: ${timeLimit}, defaulting to 60 seconds`);
-      validTimeLimit = 60;
-    }
-
+    const validLimit = _validTimeLimit(timeLimit);
     const startTime = Date.now();
-    set({ timeLeft: validTimeLimit });
+    set({ timeLeft: validLimit });
 
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const left = Math.max(0, validTimeLimit - elapsed);
+      const left = Math.max(0, validLimit - elapsed);
       set({ timeLeft: left });
-      
+
       if (left === 0) {
         clearInterval(interval);
         set({ timerInterval: null });
-        
-        // Auto-forfeit when time runs out
-        const battle = get().battle;
-        if (battle?._id && !get().submissionResult) {
-          get().forfeit(battle._id);
-        }
+        // Server handles timeout — no need to forfeit from client
+        // (avoids double-forfeit race condition)
       }
     }, 1000);
 
@@ -372,6 +503,7 @@ const useBattleStore = create((set, get) => ({
   },
 
   // ── Reset 1v1 ────────────────────────────────────────────────────
+
   reset: () => {
     get().stopTimer();
     set({
@@ -388,8 +520,50 @@ const useBattleStore = create((set, get) => ({
       opponentSubmitting: false,
       battleResult: null,
       opponentDisconnected: false,
+      _listenersInitialized: false, // allow re-init on next mount
     });
   },
 }));
+
+// ── Private helpers ────────────────────────────────────────────────────────
+
+function _validTimeLimit(value) {
+  const n = parseInt(value);
+  if (isNaN(n) || n <= 0) {
+    console.warn(`[Timer] Invalid timeLimit "${value}", defaulting to 1800s`);
+    return 1800;
+  }
+  return n;
+}
+
+function _extractParticipant(data, myId, wantMe) {
+  if (!data.participants?.length) return null;
+  return (
+    data.participants.find((p) => {
+      const pid = (p.user?._id || p.user || p.userId)?.toString();
+      return wantMe ? pid === myId : pid !== myId;
+    }) || null
+  );
+}
+
+function _reshapeProblem(problem, battleMode) {
+  if (!problem) return null;
+  return {
+    _id: problem._id,
+    title: problem.title,
+    slug: problem.slug,
+    description: problem.description,
+    difficulty: problem.difficulty,
+    tags: problem.tags || [],
+    constraints: problem.constraints,
+    examples: problem.examples || [],
+    starterCode: problem.starterCode || null,
+    mode: problem.mode || battleMode || "standard",
+    sampleTestCases: (problem.testCases || [])
+      .filter((tc) => tc.isPublic)
+      .map((tc) => ({ input: tc.input, output: tc.output })),
+    totalTestCases: problem.testCases?.length || 0,
+  };
+}
 
 export default useBattleStore;
