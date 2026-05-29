@@ -139,12 +139,12 @@ const useBattleStore = create((set, get) => ({
   // FIX: Don't stop timer here. Wait for server to confirm via battle:ended.
   // If server rejects forfeit the timer must keep running — otherwise UI
   // freezes with no result modal ever arriving.
-  forfeit: (battleId) => {
+  forfeit: (battleId, reason = null) => {
     const socket = getSocket();
     if (!socket || !battleId) return;
 
     set({ isSubmitting: true });
-    socket.emit("battle:forfeit", { battleId });
+    socket.emit("battle:forfeit", { battleId, reason });
 
     // Safety net: if battle:ended never arrives in 10s, unblock the UI
     const fallback = setTimeout(() => {

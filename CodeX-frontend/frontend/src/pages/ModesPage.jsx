@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import useBattleStore from "../store/battleStore";
+import Logo from "../components/Logo";
 
 const modes = [
   {
@@ -148,12 +149,7 @@ export default function ModesPage() {
 
       {/* Navbar */}
       <nav className="relative z-20 h-14 bg-white border-b-2 border-black flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">
-            CodeX
-          </span>
-          <span className="font-bold text-lg">Arena</span>
-        </div>
+        <Logo size="md" />
         <button
           onClick={() => navigate("/dashboard")}
           className="text-xs font-black uppercase tracking-widest border-2 border-black px-4 py-1.5 rounded-lg bg-white hover:bg-black hover:text-white transition-all shadow-[3px_3px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"

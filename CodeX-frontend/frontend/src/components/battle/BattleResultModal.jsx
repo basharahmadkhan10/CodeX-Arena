@@ -2,12 +2,7 @@ import { motion } from "framer-motion";
 import { Trophy, TrendingUp, TrendingDown, Clock, Home } from "lucide-react";
 import useAuthStore from "../../store/authStore";
 
-const REASON_LABELS = {
-  solved: "First to Solve",
-  timeout: "Time Limit Reached",
-  forfeit: "Opponent Forfeited",
-  disconnect: "Opponent Disconnected",
-};
+
 
 export default function BattleResultModal({ result, you, onClose }) {
   const { user } = useAuthStore();
@@ -71,7 +66,20 @@ export default function BattleResultModal({ result, you, onClose }) {
                 isWin ? "text-white/80" : "text-black/50"
               }`}
             >
-              {REASON_LABELS[reason] || reason}
+              {isDraw
+                ? (reason === "timeout" ? "Time Limit Reached" : reason)
+                : isWin
+                  ? (reason === "solved" ? "First to Solve"
+                     : reason === "timeout" ? "Time Limit Reached"
+                     : reason === "forfeit" ? "Opponent Forfeited"
+                     : reason === "disconnect" ? "Opponent Disconnected"
+                     : `Opponent Disqualified: ${reason}`)
+                  : (reason === "solved" ? "Opponent First to Solve"
+                     : reason === "timeout" ? "Time Limit Reached"
+                     : reason === "forfeit" ? "You Forfeited"
+                     : reason === "disconnect" ? "You Disconnected"
+                     : `Disqualified: ${reason}`)
+              }
             </p>
           </motion.div>
         </div>

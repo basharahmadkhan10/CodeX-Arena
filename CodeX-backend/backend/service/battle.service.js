@@ -4,9 +4,7 @@ import Problem from "../models/Problem.js";
 import { runTestCases } from "./codeExecution.service.js";
 import { clearBattleTimer } from "./matchmaking.service.js";
 
-const RATING = { WIN: 50, LOSS: -25, DRAW: 5 };
-
-// ── Submit solution ───────────────────────────────────────────────────────────
+const RATING = { WIN: 50, LOSS: -25, DRAW: 5 };
 export const submitSolution = async (battleId, userId, code, language, io) => {
   const battle = await Battle.findById(battleId).populate("problem");
   if (!battle)                      throw new Error("Battle not found");
@@ -46,9 +44,7 @@ export const submitSolution = async (battleId, userId, code, language, io) => {
   }
 
   return { status, passed, total, results, errorMessage };
-};
-
-// ── End battle ────────────────────────────────────────────────────────────────
+};
 export const endBattle = async (battleId, winnerId, reason, io) => {
   const battle = await Battle.findById(battleId).populate("participants.user");
   if (!battle || battle.status !== "active") return;
@@ -131,9 +127,7 @@ export const endBattle = async (battleId, winnerId, reason, io) => {
   });
 
   console.log(`🏁 Battle [${battle.roomId}] ended — ${reason}`);
-};
-
-// ── Get battle by ID ──────────────────────────────────────────────────────────
+};
 export const getBattleById = (id) =>
   Battle.findById(id)
     .populate("problem", "title description difficulty examples constraints tags starterCode")

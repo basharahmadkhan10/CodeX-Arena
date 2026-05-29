@@ -3,12 +3,12 @@ import api from "../services/api";
 import { connectSocket, disconnectSocket } from "../services/socket";
 
 function nextRank(rating, currentRank) {
-  if (rating >= 2200) return "Grandmaster";
+  if (rating >= 2000) return "Grandmaster";
   if (rating >= 1800) return "Master";
-  if (rating >= 1500) return "Expert";
-  if (rating >= 1200) return "Warrior";
-  if (rating >= 1000) return "Apprentice";
-  return currentRank || "Novice";
+  if (rating >= 1600) return "Expert";
+  if (rating >= 1400) return "Warrior";
+  if (rating >= 1200) return "Apprentice";
+  return "Novice";
 }
 
 const useAuthStore = create((set, get) => ({
@@ -45,7 +45,23 @@ const useAuthStore = create((set, get) => ({
         password,
       });
       
-      // Store token from response
+      // OTP sent successfully
+      set({ isLoading: false });
+      return { success: true, message: data.message || "OTP sent" };
+    } catch (err) {
+      set({ isLoading: false });
+      return {
+        success: false,
+        message: err.response?.data?.message || "Registration failed",
+      };
+    }
+  },
+
+  verifyOtp: async (email, otp) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await api.post("/auth/verify-otp", { email, otp });
+      
       if (data.token) {
         localStorage.setItem("dd_token", data.token);
       }
@@ -57,7 +73,7 @@ const useAuthStore = create((set, get) => ({
       set({ isLoading: false });
       return {
         success: false,
-        message: err.response?.data?.message || "Registration failed",
+        message: err.response?.data?.message || "OTP Verification failed",
       };
     }
   },

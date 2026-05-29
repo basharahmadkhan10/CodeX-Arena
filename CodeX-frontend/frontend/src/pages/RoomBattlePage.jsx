@@ -6,6 +6,7 @@ import { Copy, Check, Users, Crown, LogOut, Play, Link } from "lucide-react";
 import useBattleStore from "../store/battleStore";
 import useAuthStore from "../store/authStore";
 import { getSocket } from "../services/socket";
+import Logo from "../components/Logo";
 
 // ── Floating shapes (reuse from your other pages) ───────────────────────────
 const floatingShapes = [
@@ -62,12 +63,7 @@ function LobbyScreen({ code, members, isHost, onStart, onLeave }) {
 
       {/* Navbar */}
       <nav className="relative z-20 h-14 bg-white border-b-2 border-black flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">
-            CodeX
-          </span>
-          <span className="font-bold text-lg">Arena</span>
-        </div>
+        <Logo size="md" />
         <button
           onClick={onLeave}
           className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest border-2 border-black px-4 py-1.5 rounded-lg bg-white hover:bg-red-100 transition-all shadow-[3px_3px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
@@ -238,12 +234,7 @@ function JoinCreateScreen({ onCreateRoom, onJoinRoom, onBack, error }) {
       ))}
 
       <nav className="relative z-20 h-14 bg-white border-b-2 border-black flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">
-            CodeX
-          </span>
-          <span className="font-bold text-lg">Arena</span>
-        </div>
+        <Logo size="md" />
         <button
           onClick={onBack}
           className="text-xs font-black uppercase tracking-widest border-2 border-black px-4 py-1.5 rounded-lg bg-white hover:bg-black hover:text-white transition-all shadow-[3px_3px_0px_#000]"

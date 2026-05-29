@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import useAuthStore from "../store/authStore";
 import useBattleStore from "../store/battleStore";
 import api from "../services/api";
+import Logo from "../components/Logo";
 
 const RANK_STYLES = {
   Novice: {
@@ -98,12 +99,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[rgb(238,11,22)]">
       {/* Navbar */}
       <nav className="h-14 bg-[#ffffff] border-b-2 border-black flex items-center px-6 sticky top-0 z-50">
-        <div className="flex items-center gap-2.5">
-          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">
-            CodeX
-          </span>
-          <span className="font-bold text-lg">Arena</span>
-        </div>
+        <Logo size="md" />
         <div className="flex-1" />
         <div className="flex items-center gap-4">
           <div

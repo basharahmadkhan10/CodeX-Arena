@@ -38,6 +38,11 @@ const useSocketEvents = () => {
       toast.error(message || "Matchmaking failed. Try again.");
     };
 
+    const onMatchmakingRejoinActive = ({ message }) => {
+      toast(message || "Rejoining active battle...", { icon: "🔄" });
+      useBattleStore.getState().fetchActiveBattle();
+    };
+
     // ── Battle matched ────────────────────────────────────────────
     // Server emits battle:matched exactly ONCE per player.
     // battle:started listener removed — it was a duplicate that fired
@@ -140,6 +145,7 @@ const useSocketEvents = () => {
     socket.on("matchmaking:queue_size",       onQueueSize);
     socket.on("matchmaking:queued",           onQueued);
     socket.on("matchmaking:error",            onMatchmakingError);
+    socket.on("matchmaking:rejoin_active",    onMatchmakingRejoinActive);
     socket.on("battle:matched",               onMatched);
     socket.on("battle:submission_pending",    onSubmissionPending);
     socket.on("battle:submission_result",     onSubmissionResult);
@@ -156,6 +162,7 @@ const useSocketEvents = () => {
       socket.off("matchmaking:queue_size",       onQueueSize);
       socket.off("matchmaking:queued",           onQueued);
       socket.off("matchmaking:error",            onMatchmakingError);
+      socket.off("matchmaking:rejoin_active",    onMatchmakingRejoinActive);
       socket.off("battle:matched",               onMatched);
       socket.off("battle:submission_pending",    onSubmissionPending);
       socket.off("battle:submission_result",     onSubmissionResult);

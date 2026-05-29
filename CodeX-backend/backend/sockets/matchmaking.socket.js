@@ -35,7 +35,7 @@ const matchmakingHandler = (io, socket) => {
         }).select("_id");
 
         if (activeBattle) {
-          socket.emit("matchmaking:error", { message: "You are already in an active battle." });
+          socket.emit("matchmaking:rejoin_active", { message: "You are already in an active battle. Rejoining..." });
           return;
         }
 

@@ -17,9 +17,7 @@ const problemQueryForMode = (mode) =>
     : {
         isActive: true,
         $or: [{ mode: { $exists: false } }, { mode: MODE_STANDARD }],
-      };
-
-// ── Battle timer ──────────────────────────────────────────────────────────────
+      };
 
 export const startBattleTimer = (io, roomId, battleId) => {
   if (battleTimers.has(roomId)) return;
@@ -47,9 +45,7 @@ export const clearBattleTimer = (roomId) => {
     battleTimers.delete(roomId);
     console.log(`[Timer] Cleared for room ${roomId}`);
   }
-};
-
-// ── MatchmakingService ────────────────────────────────────────────────────────
+};
 
 class MatchmakingService {
   constructor() {
@@ -64,9 +60,7 @@ class MatchmakingService {
 
   setIO(io) {
     this.io = io;
-  }
-
-  // ── Queue helpers ───────────────────────────────────────────────
+  }
 
   _getQueue(mode = MODE_STANDARD) {
     const m = normalizeMode(mode);
@@ -88,9 +82,7 @@ class MatchmakingService {
       }
     }
     return removed;
-  }
-
-  // ── Public API ──────────────────────────────────────────────────
+  }
 
   async addToQueue(userId, socketId, username, rating, mode = MODE_STANDARD) {
     const normalizedMode = normalizeMode(mode);
@@ -168,9 +160,7 @@ class MatchmakingService {
   getQueueSize(mode) {
     if (mode) return this._getQueue(mode).length;
     return [...this.queues.values()].reduce((t, q) => t + q.length, 0);
-  }
-
-  // ── Matching ────────────────────────────────────────────────────
+  }
 
   async _tryMatch(mode = MODE_STANDARD) {
     const queue = this._getQueue(mode);
@@ -277,9 +267,7 @@ class MatchmakingService {
       const s1 = this.io.sockets.sockets.get(player1.socketId);
       const s2 = this.io.sockets.sockets.get(player2.socketId);
       if (s1) s1.join(roomId);
-      if (s2) s2.join(roomId);
-
-      // ── Emit battle:matched ONCE per player — no duplicates ──────
+      if (s2) s2.join(roomId);
       // Each player gets their own you/opponent perspective.
       // Do NOT emit battle:started or battle:start after this —
       // the frontend listens only to battle:matched.
@@ -323,9 +311,7 @@ class MatchmakingService {
       this._getQueue(mode).unshift(player2);
       this._getQueue(mode).unshift(player1);
     }
-  }
-
-  // ── Queue-size broadcast (debounced 100 ms) ─────────────────────
+  }
 
   _broadcastQueueSize(mode) {
     if (!this.io) return;

@@ -1,8 +1,12 @@
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
+import { Resend } from "resend";
 import User from "../models/User.js";
 import Battle from "../models/Battle.js";
+import Otp from "../models/Otp.js";
 import { GOOGLE_CLIENT_ID, JWT_SECRET, JWT_EXPIRES_IN } from "../config/constants.js";
+
+const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key");
 
 const signToken = (id) => jwt.sign({ id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
@@ -15,9 +19,7 @@ const cookieOptions = () => ({
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   maxAge:   7 * 24 * 60 * 60 * 1000,
   ...(process.env.NODE_ENV === "production" && { domain: ".onrender.com" }),
-});
-
-// ── Username generator ────────────────────────────────────────────────────────
+});
 const createUniqueUsername = async (email, googleId) => {
   const base = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 16) || "player";
   let username = base;
@@ -28,9 +30,7 @@ const createUniqueUsername = async (email, googleId) => {
   }
   if (!username) username = `google_${String(googleId).slice(-6)}`;
   return username.slice(0, 20);
-};
-
-// ── Register ──────────────────────────────────────────────────────────────────
+};
 export const register = async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
@@ -47,7 +47,63 @@ export const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: `${field} is already taken` });
     }
 
-    const user  = await User.create({ username, email: email.toLowerCase(), password });
+    // Generate 6 digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store in DB (delete existing if any)
+    await Otp.findOneAndDelete({ email: email.toLowerCase() });
+    await Otp.create({ username, email: email.toLowerCase(), password, otp: otpCode });
+
+    // Send email via Resend
+    if (process.env.RESEND_API_KEY) {
+      await resend.emails.send({
+        from: 'CodeX Arena <onboarding@resend.dev>', // Free tier allows sending to registered emails, so in prod use a verified domain
+        to: email.toLowerCase(),
+        subject: 'Verify your CodeX Arena Account',
+        html: `<p>Welcome to CodeX Arena!</p><p>Your verification code is: <strong style="font-size: 24px;">${otpCode}</strong></p><p>This code expires in 5 minutes.</p>`
+      });
+    } else {
+      console.log(`[DEV ONLY] OTP for ${email.toLowerCase()} is ${otpCode}`);
+    }
+
+    return res.status(200).json({ success: true, message: "OTP sent to email. Please verify." });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const verifyOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    
+    if (!email || !otp) 
+      return res.status(400).json({ success: false, message: "Email and OTP are required" });
+
+    const record = await Otp.findOne({ email: email.toLowerCase(), otp });
+    
+    if (!record) {
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+    }
+
+    // Ensure username or email hasn't been taken in the meantime
+    const existingUser = await User.findOne({
+      $or: [{ email: record.email }, { username: record.username }],
+    });
+    if (existingUser) {
+      await Otp.findByIdAndDelete(record._id);
+      return res.status(409).json({ success: false, message: "Username or email was taken during verification." });
+    }
+
+    // create user
+    const user = await User.create({
+      username: record.username,
+      email: record.email,
+      password: record.password
+    });
+    
+    // delete otp record
+    await Otp.findByIdAndDelete(record._id);
+
     const token = signToken(user._id);
 
     res.cookie("token", token, cookieOptions());
@@ -55,9 +111,7 @@ export const register = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-// ── Login ─────────────────────────────────────────────────────────────────────
+};
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -85,9 +139,7 @@ export const login = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-// ── Google Auth ───────────────────────────────────────────────────────────────
+};
 export const googleAuth = async (req, res, next) => {
   try {
     if (!googleClient || !GOOGLE_CLIENT_ID)
@@ -134,14 +186,10 @@ export const googleAuth = async (req, res, next) => {
     console.error("Google Auth Error:", err);
     next(err);
   }
-};
-
-// ── Get me ────────────────────────────────────────────────────────────────────
+};
 export const getMe = async (req, res) => {
   res.json({ success: true, user: req.user.toSafeObject() });
-};
-
-// ── Logout ────────────────────────────────────────────────────────────────────
+};
 // FIX: clear currentBattleId so the user is never stuck in "already in battle"
 // FIX: also end any active battle they're in so opponent isn't left hanging
 export const logout = async (req, res, next) => {

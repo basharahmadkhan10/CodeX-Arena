@@ -1,13 +1,9 @@
-import axios from "axios";
-
-// ─── Environment ────────────────────────────────────────────────────────────
+import axios from "axios";
 const JUDGE0_URL      = process.env.JUDGE0_URL || "https://judge0-ce.p.rapidapi.com";
 const JUDGE0_API_KEY  = process.env.JUDGE0_API_KEY || null;
 const JDOODLE_CLIENT  = process.env.JDOODLE_CLIENT_ID || null;
 const JDOODLE_SECRET  = process.env.JDOODLE_CLIENT_SECRET || null;
-const PISTON_URL      = "https://emkc.org/api/v2/piston";
-
-// ─── Language Maps ───────────────────────────────────────────────────────────
+const PISTON_URL      = "https://emkc.org/api/v2/piston";
 const JUDGE0_LANGUAGE_IDS = {
   javascript: 63,
   python:     71,
@@ -33,9 +29,7 @@ const JDOODLE_LANGUAGES = {
   c:          { language: "c",        versionIndex: "5" },
 };
 
-export const SUPPORTED_LANGUAGES = Object.keys(JUDGE0_LANGUAGE_IDS);
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+export const SUPPORTED_LANGUAGES = Object.keys(JUDGE0_LANGUAGE_IDS);
 const sleep  = (ms) => new Promise((r) => setTimeout(r, ms));
 const normalize = (s) =>
   (s || "").trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -54,9 +48,7 @@ async function withRetry(fn, attempts = 2, delayMs = 800) {
     }
   }
   throw lastErr;
-}
-
-// ─── Judge0 ──────────────────────────────────────────────────────────────────
+}
 // Monthly counter stored in-memory (resets every 30 days).
 let judge0Count      = 0;
 let judge0LastReset  = Date.now();
@@ -88,7 +80,7 @@ async function executeWithJudge0(code, language, stdin = "") {
   console.log(`[Judge0] submitting (remaining: ${JUDGE0_LIMIT - judge0Count})`);
 
   const submitRes = await axios.post(
-    `${JUDGE0_URL}/submissions?base64_encoded=false&wait=false`,
+    `${JUDGE0_URL}/submissions?base64_encoded=false&wait=true`,
     {
       source_code:      code,
       language_id:      languageId,
@@ -97,37 +89,23 @@ async function executeWithJudge0(code, language, stdin = "") {
       wall_time_limit:  10,
       memory_limit:     256000,
     },
-    { headers, timeout: 15_000 }
+    { headers, timeout: 20_000 }
   );
 
   judge0Count++;
-  const token = submitRes.data?.token;
-  if (!token) throw new Error("Judge0: no submission token received");
+  const d = submitRes.data;
+  if (!d || !d.status) throw new Error("Judge0: invalid response received");
 
-  // Poll up to 12 times (12 s)
-  for (let i = 0; i < 12; i++) {
-    await sleep(1000);
-    const res = await axios.get(
-      `${JUDGE0_URL}/submissions/${token}?base64_encoded=false`,
-      { headers, timeout: 10_000 }
-    );
-    const d        = res.data;
-    const statusId = d.status?.id;
-    if (statusId <= 2) continue; // queued / processing
-
-    return {
-      output:    normalize(d.stdout || ""),
-      stderr:    normalize(d.stderr || d.compile_output || ""),
-      exitCode:  d.exit_code ?? (statusId === 3 ? 0 : 1),
-      timed_out: statusId === 5,
-      ce:        statusId === 6,
-      source:    "judge0",
-    };
-  }
-  throw new Error("Judge0: polling timed out");
-}
-
-// ─── JDoodle ─────────────────────────────────────────────────────────────────
+  const statusId = d.status.id;
+  return {
+    output:    normalize(d.stdout || ""),
+    stderr:    normalize(d.stderr || d.compile_output || ""),
+    exitCode:  d.exit_code ?? (statusId === 3 ? 0 : 1),
+    timed_out: statusId === 5,
+    ce:        statusId === 6,
+    source:    "judge0",
+  };
+}
 function canUseJDoodle() {
   return !!(JDOODLE_CLIENT && JDOODLE_SECRET);
 }
@@ -171,9 +149,7 @@ async function executeWithJDoodle(code, language, stdin = "") {
     ce:        isCE,
     source:    "jdoodle",
   };
-}
-
-// ─── Piston ──────────────────────────────────────────────────────────────────
+}
 async function executeWithPiston(code, language, stdin = "") {
   const cfg = PISTON_LANGUAGES[language];
   if (!cfg) throw new Error(`Piston: unsupported language — ${language}`);
@@ -211,9 +187,7 @@ async function executeWithPiston(code, language, stdin = "") {
     ce:        isCE,
     source:    "piston",
   };
-}
-
-// ─── Public: executeCode ──────────────────────────────────────────────────────
+}
 /**
  * Priority chain:
  *   1. Judge0  (if API key set + monthly quota remaining)
@@ -242,50 +216,56 @@ export async function executeCode(code, language, stdin = "") {
   }
 
   throw new Error(`All execution engines failed.\n${errors.join("\n")}`);
-}
-
-// ─── Public: runTestCases ────────────────────────────────────────────────────
+}
 export async function runTestCases(code, language, testCases) {
-  const results      = [];
+  const results      = new Array(testCases.length);
   let passed         = 0;
   let overallStatus  = "AC";
   let errorMessage   = null;
+  let ceFound        = false;
 
-  for (let i = 0; i < testCases.length; i++) {
-    const tc = testCases[i];
+  const BATCH_SIZE = 3;
+  for (let i = 0; i < testCases.length; i += BATCH_SIZE) {
+    if (ceFound) break;
+    const batch = testCases.slice(i, i + BATCH_SIZE);
+    
+    const batchResults = await Promise.all(batch.map(async (tc, batchIdx) => {
+      const idx = i + batchIdx;
+      try {
+        const exec = await executeCode(code, language, tc.input);
+        return { idx, tc, exec, err: null };
+      } catch (err) {
+        return { idx, tc, exec: null, err };
+      }
+    }));
 
-    try {
-      const exec = await executeCode(code, language, tc.input);
+    for (const { idx, tc, exec, err } of batchResults) {
+      if (ceFound) continue;
 
-      // ── Compilation Error ────────────────────────────────────────────────
+      if (err) {
+        if (overallStatus === "AC") overallStatus = "RE";
+        errorMessage = err.message;
+        results[idx] = makeResult(idx, tc, `Error: ${err.message}`, false);
+        continue;
+      }
       if (exec.ce) {
         overallStatus = "CE";
         errorMessage  = exec.stderr.slice(0, 500);
-        results.push(makeResult(i, tc, `Compilation Error:\n${exec.stderr.slice(0, 200)}`, false));
-
-        // Mark all remaining as CE without re-executing
-        for (let j = i + 1; j < testCases.length; j++) {
-          results.push(makeResult(j, testCases[j], "Compilation Error", false));
-        }
-        break;
-      }
-
-      // ── Time Limit Exceeded ──────────────────────────────────────────────
+        results[idx] = makeResult(idx, tc, `Compilation Error:\n${exec.stderr.slice(0, 200)}`, false);
+        ceFound = true;
+        continue;
+      }
       if (exec.timed_out) {
         if (overallStatus === "AC") overallStatus = "TLE";
-        results.push(makeResult(i, tc, "Time Limit Exceeded", false));
+        results[idx] = makeResult(idx, tc, "Time Limit Exceeded", false);
         continue;
-      }
-
-      // ── Runtime Error ────────────────────────────────────────────────────
+      }
       if (exec.exitCode !== 0 && exec.stderr) {
         if (overallStatus === "AC") overallStatus = "RE";
         errorMessage = exec.stderr.slice(0, 300);
-        results.push(makeResult(i, tc, `Runtime Error:\n${exec.stderr.slice(0, 150)}`, false));
+        results[idx] = makeResult(idx, tc, `Runtime Error:\n${exec.stderr.slice(0, 150)}`, false);
         continue;
-      }
-
-      // ── Compare output ───────────────────────────────────────────────────
+      }
       const actual   = normalize(exec.output);
       const expected = normalize(tc.output);
       const ok       = actual === expected;
@@ -293,19 +273,22 @@ export async function runTestCases(code, language, testCases) {
       if (ok) passed++;
       else if (overallStatus === "AC") overallStatus = "WA";
 
-      results.push({
-        testCase:       i + 1,
+      results[idx] = {
+        testCase:       idx + 1,
         input:          tc.isPublic ? tc.input    : "***hidden***",
         expectedOutput: tc.isPublic ? expected    : "***hidden***",
         actualOutput:   tc.isPublic ? actual      : (ok ? "✓ Correct" : "✗ Wrong"),
         passed:         ok,
         isPublic:       tc.isPublic,
-      });
+      };
+    }
+  }
 
-    } catch (err) {
-      if (overallStatus === "AC") overallStatus = "RE";
-      errorMessage = err.message;
-      results.push(makeResult(i, tc, `Error: ${err.message}`, false));
+  if (ceFound) {
+    for (let j = 0; j < testCases.length; j++) {
+      if (!results[j]) {
+        results[j] = makeResult(j, testCases[j], "Compilation Error", false);
+      }
     }
   }
 
@@ -321,9 +304,7 @@ function makeResult(i, tc, actualOutput, passed) {
     passed,
     isPublic:       tc.isPublic,
   };
-}
-
-// ─── Public: getExecutionStatus ──────────────────────────────────────────────
+}
 export function getExecutionStatus() {
   resetJudge0IfNeeded();
   return {

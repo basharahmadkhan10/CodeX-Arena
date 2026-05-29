@@ -1,4 +1,3 @@
-// src/pages/BattlePage.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,7 +11,9 @@ import { getSocket } from "../services/socket";
 import useBattleStore from "../store/battleStore";
 import useAuthStore from "../store/authStore";
 import BattleResultModal from "../components/battle/BattleResultModal";
+import VsPreloader from "../components/battle/VsPreloader";
 import useAntiCheat from "../hooks/useAntiCheat";
+import Logo from "../components/Logo";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -120,10 +121,7 @@ function SearchingScreen({ onCancel, modeLabel = "1v1 Duel Battle" }) {
         />
       ))}
       <nav className="relative z-20 h-14 bg-white border-b-2 border-black flex items-center px-6 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">CodeX</span>
-          <span className="font-bold text-lg">Arena</span>
-        </div>
+        <Logo size="md" />
       </nav>
       <div className="flex-1 flex items-center justify-center px-4 relative z-10">
         <motion.div
@@ -184,18 +182,23 @@ export default function BattlePage() {
   const [violations,      setViolations]      = useState(0);
   const [focusLostCount,  setFocusLostCount]  = useState(0);
   const [isTabActive,     setIsTabActive]     = useState(true);
-  const [isFullscreen,    setIsFullscreen]    = useState(false);
+  const [isFullscreen,    setIsFullscreen]    = useState(() => !!document.fullscreenElement);
   const [fullscreenExits, setFullscreenExits] = useState(0);
   const [hasAutoForfeited,setHasAutoForfeited]= useState(false);
+  const [showVsScreen,    setShowVsScreen]    = useState(true);
 
   const editorRef            = useRef(null);
   const violationIntervalRef = useRef(null);
-  const isFullscreenRef      = useRef(false); // stable ref for interval callbacks
+  const isFullscreenRef      = useRef(!!document.fullscreenElement); // stable ref for interval callbacks
+  const showVsScreenRef      = useRef(true);  // stable ref so closures read current value
+  const hasAutoForfeitedRef  = useRef(false); // stable ref for interval callbacks
 
   const isBattleActive = !!battle && !battleResult;
 
-  // Keep ref in sync with state
-  useEffect(() => { isFullscreenRef.current = isFullscreen; }, [isFullscreen]);
+  // Keep refs in sync with state
+  useEffect(() => { isFullscreenRef.current     = isFullscreen;     }, [isFullscreen]);
+  useEffect(() => { showVsScreenRef.current     = showVsScreen;     }, [showVsScreen]);
+  useEffect(() => { hasAutoForfeitedRef.current = hasAutoForfeited; }, [hasAutoForfeited]);
 
   // ── Init listeners + rehydrate on refresh ─────────────────────────
   useEffect(() => {
@@ -231,7 +234,7 @@ export default function BattlePage() {
     toast.error(`⚠️ Disqualified: ${reason}`, { duration: 5000 });
 
     if (battle?.battleId) {
-      setTimeout(() => forfeit(battle.battleId), 800);
+      setTimeout(() => forfeit(battle.battleId, reason), 800);
     } else {
       setTimeout(() => { reset(); navigate("/"); }, 3000);
     }
@@ -249,7 +252,7 @@ export default function BattlePage() {
     }
   }, [fullscreenExits, focusLostCount, violations, isBattleActive, hasAutoForfeited, autoForfeit]);
 
-  useAntiCheat(isBattleActive, (_type, count) => setViolations(count));
+  useAntiCheat(isBattleActive && !showVsScreen, (_type, count) => setViolations(count));
 
   // ── Redirect if idle and no battle ────────────────────────────────
   useEffect(() => {
@@ -289,12 +292,12 @@ export default function BattlePage() {
   useEffect(() => {
     if (!isBattleActive) return;
 
-    const handleChange = () => {
+    const syncFullscreen = () => {
       const nowFullscreen = !!document.fullscreenElement;
       setIsFullscreen(nowFullscreen);
 
-      // Only count as an exit if we were fullscreen before
-      if (!nowFullscreen && isFullscreenRef.current && !hasAutoForfeited) {
+      // Count as an exit only if: we were fullscreen before, battle is real, not during VS screen
+      if (!nowFullscreen && isFullscreenRef.current && !showVsScreenRef.current && !hasAutoForfeitedRef.current) {
         setFullscreenExits((prev) => {
           const next = prev + 1;
           const remaining = MAX_FULLSCREEN_EXITS - next;
@@ -307,17 +310,24 @@ export default function BattlePage() {
       }
     };
 
-    setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", handleChange);
-    return () => document.removeEventListener("fullscreenchange", handleChange);
-  }, [isBattleActive, hasAutoForfeited]);
+    // Sync immediately when battle becomes active (covers VS-screen-to-editor transition)
+    syncFullscreen();
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    document.addEventListener("webkitfullscreenchange", syncFullscreen);
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreen);
+      document.removeEventListener("webkitfullscreenchange", syncFullscreen);
+    };
+  }, [isBattleActive]); // refs handle the rest — no stale closures
 
   // ── Tab visibility ─────────────────────────────────────────────────
   useEffect(() => {
+    if (!isBattleActive) return;
     const handleVisibility = () => {
       const isVisible = !document.hidden;
       setIsTabActive(isVisible);
-      if (!isVisible && isBattleActive && !hasAutoForfeited) {
+      // Use refs so this never goes stale between re-renders
+      if (!isVisible && !showVsScreenRef.current && !hasAutoForfeitedRef.current) {
         setFocusLostCount((prev) => {
           const next = prev + 1;
           const remaining = MAX_TAB_SWITCHES - next;
@@ -331,13 +341,15 @@ export default function BattlePage() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [isBattleActive, hasAutoForfeited]);
+  }, [isBattleActive]); // refs handle showVsScreen/hasAutoForfeited — no re-subscribe needed
 
-  // ── Periodic focus / fullscreen checks ────────────────────────────
+  // ── Periodic focus check ────────────────────────────────────────────
   useEffect(() => {
     if (!isBattleActive) return;
-    violationIntervalRef.current = setInterval(() => {
-      if (!document.hasFocus() && !hasAutoForfeited) {
+    const id = setInterval(() => {
+      // Skip during VS screen or after auto-forfeit (use refs for fresh values)
+      if (showVsScreenRef.current || hasAutoForfeitedRef.current) return;
+      if (!document.hasFocus()) {
         setFocusLostCount((prev) => {
           const remaining = MAX_TAB_SWITCHES - (prev + 1);
           if (remaining > 0 && remaining <= 2) {
@@ -348,8 +360,9 @@ export default function BattlePage() {
         setViolations((prev) => prev + 1);
       }
     }, 5000);
-    return () => { if (violationIntervalRef.current) clearInterval(violationIntervalRef.current); };
-  }, [isBattleActive, hasAutoForfeited]);
+    violationIntervalRef.current = id;
+    return () => clearInterval(id);
+  }, [isBattleActive]); // single interval for the whole battle duration
 
   // ── Copy / paste blocking ──────────────────────────────────────────
   useEffect(() => {
@@ -507,6 +520,17 @@ export default function BattlePage() {
 
   if (!battle && !battleResult) return null;
 
+  if (battle && showVsScreen) {
+    return (
+      <VsPreloader 
+        you={battle.you} 
+        opponent={battle.opponent} 
+        mode={battle.mode} 
+        onComplete={() => setShowVsScreen(false)} 
+      />
+    );
+  }
+
   // Battle ended but modal not yet dismissed
   if (!battle && battleResult) {
     return (
@@ -566,8 +590,7 @@ export default function BattlePage() {
       <header className="h-13 bg-white border-b-2 border-black flex items-center px-4 gap-4 shrink-0 z-10 py-2">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-black text-white rounded flex items-center justify-center font-black text-sm">C</div>
-          <span className="font-black text-black text-base tracking-tight hidden sm:block">CodeX Arena</span>
+          <Logo size="sm" />
         </div>
 
         {/* Players */}

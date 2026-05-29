@@ -22,6 +22,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
+    "resend": "^6.12.4",
     "socket.io": "^4.5.4",
     "uuid": "^9.0.0"
   },

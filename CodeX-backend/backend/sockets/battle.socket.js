@@ -19,9 +19,7 @@ function canDo(map, userId, cooldownMs) {
 }
 
 const battleHandler = (io, socket) => {
-  const userId = socket.user._id.toString();
-
-  // ─── battle:rejoin ────────────────────────────────────────────────────────
+  const userId = socket.user._id.toString();
   // Client emits this after a socket reconnect to re-enter their battle room.
   socket.on("battle:rejoin", async ({ roomId, battleId }) => {
     try {
@@ -62,9 +60,7 @@ const battleHandler = (io, socket) => {
       console.error("[battle:rejoin]", err.message);
       socket.emit("battle:error", { message: "Failed to rejoin battle." });
     }
-  });
-
-  // ─── battle:submit ────────────────────────────────────────────────────────
+  });
   socket.on("battle:submit", async ({ battleId, code, language }) => {
     if (!canDo(submitCooldowns, userId, SUBMIT_COOLDOWN_MS)) {
       socket.emit("battle:error", { message: "Please wait before submitting again." });
@@ -93,9 +89,7 @@ const battleHandler = (io, socket) => {
     } catch (err) {
       socket.emit("battle:error", { message: err.message });
     }
-  });
-
-  // ─── battle:run_code ──────────────────────────────────────────────────────
+  });
   socket.on("battle:run_code", async ({ code, language, input }) => {
     if (!canDo(runCooldowns, userId, RUN_COOLDOWN_MS)) {
       socket.emit("battle:run_result", {
@@ -115,10 +109,8 @@ const battleHandler = (io, socket) => {
     } catch (err) {
       socket.emit("battle:run_result", { output: `Error: ${err.message}`, error: true });
     }
-  });
-
-  // ─── battle:forfeit ───────────────────────────────────────────────────────
-  socket.on("battle:forfeit", async ({ battleId }) => {
+  });
+  socket.on("battle:forfeit", async ({ battleId, reason }) => {
     try {
       if (!battleId) return;
 
@@ -139,18 +131,16 @@ const battleHandler = (io, socket) => {
 
       if (opponent) {
         // Opponent wins
-        await endBattle(battle._id, opponent.user.toString(), "forfeit", io);
+        await endBattle(battle._id, opponent.user.toString(), reason || "forfeit", io);
       } else {
         // No opponent (shouldn't happen in 1v1 but guard anyway)
-        await endBattle(battle._id, null, "forfeit", io);
+        await endBattle(battle._id, null, reason || "forfeit", io);
       }
     } catch (err) {
       console.error("[battle:forfeit]", err.message);
       socket.emit("battle:error", { message: err.message });
     }
-  });
-
-  // ─── disconnecting ────────────────────────────────────────────────────────
+  });
   socket.on("disconnecting", async () => {
     // Find which battle room this socket is in (if any)
     const battleRoom = [...socket.rooms].find((r) => r !== socket.id);

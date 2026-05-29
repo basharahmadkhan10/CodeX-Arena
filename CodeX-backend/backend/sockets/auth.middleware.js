@@ -18,9 +18,7 @@ const socketAuthMiddleware = async (socket, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     const user    = await User.findById(decoded.id).select("-password");
-    if (!user) return next(new Error("User not found"));
-
-    // ── Heal stale currentBattleId ──────────────────────────────────
+    if (!user) return next(new Error("User not found"));
     // If a user disconnected mid-battle and the battle later ended,
     // currentBattleId can be left pointing at a completed/cancelled
     // battle. This causes "you are already in an active battle" errors

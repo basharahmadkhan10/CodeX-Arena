@@ -1,5 +1,3 @@
-/** @format */
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,7 +21,7 @@ import toast from "react-hot-toast";
 import useBattleStore from "../store/battleStore";
 import useAuthStore from "../store/authStore";
 import { getSocket } from "../services/socket";
-
+import Logo from "../components/Logo";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const LANGUAGE_OPTIONS = [
@@ -617,8 +615,7 @@ export default function RoomArenaPage() {
       {/* Header */}
       <header className="h-13 bg-white border-b-2 border-black flex items-center px-4 gap-4 shrink-0 z-10 py-2">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-black text-white rounded flex items-center justify-center font-black text-sm">C</div>
-          <span className="font-black text-black text-base tracking-tight hidden sm:block">CodeX Arena</span>
+          <Logo size="sm" />
         </div>
 
         <div className="flex items-center gap-2 bg-[#f0fafa] border-2 border-black rounded-xl px-3 py-1 shadow-[2px_2px_0px_#000]">

@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import useAuthStore from "../store/authStore";
+import Logo from "../components/Logo";
 
 export default function AuthPage() {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [otp, setOtp] = useState("");
   const googleButtonRef = useRef(null);
-  const { login, register, googleLogin, isLoading } = useAuthStore();
+  const { login, register, verifyOtp, googleLogin, isLoading } = useAuthStore();
   const navigate = useNavigate();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -82,15 +84,24 @@ export default function AuthPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result =
-      mode === "login"
-        ? await login(form.email, form.password)
-        : await register(form.username, form.email, form.password);
-    if (result.success) {
-      toast.success(mode === "login" ? "Welcome back!" : "Account created!");
-      navigate("/");
-    } else {
-      toast.error(result.message);
+    if (mode === "login") {
+      const result = await login(form.email, form.password);
+      if (result.success) {
+        toast.success("Welcome back!");
+        navigate("/");
+      } else toast.error(result.message);
+    } else if (mode === "register") {
+      const result = await register(form.username, form.email, form.password);
+      if (result.success) {
+        toast.success(result.message || "OTP sent! Check your email.");
+        setMode("verify-otp");
+      } else toast.error(result.message);
+    } else if (mode === "verify-otp") {
+      const result = await verifyOtp(form.email, otp);
+      if (result.success) {
+        toast.success("Account created successfully!");
+        navigate("/");
+      } else toast.error(result.message);
     }
   };
 
@@ -188,12 +199,7 @@ export default function AuthPage() {
 
       {/* Navbar */}
       <nav className="relative z-20 h-14 bg-[#ffffff] border-b-2 border-black flex items-center px-6 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="font-extrabold text-[rgb(238,11,22)] text-xl tracking-tight">
-            CodeX
-          </span>
-          <span className="font-bold text-lg">Arena</span>
-        </div>
+        <Logo size="md" />
       </nav>
 
       {/* Main */}
@@ -229,78 +235,117 @@ export default function AuthPage() {
           {/* Card */}
           <div className="bg-white border-2 border-black shadow-[8px_8px_0px_#000] rounded-2xl p-7">
             {/* Tabs */}
-            <div className="flex bg-[#e0f8f8] border-2 border-black rounded-xl p-1 mb-6">
-              {["login", "register"].map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMode(m)}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-black uppercase tracking-widest transition-all ${
-                    mode === m
-                      ? "bg-[rgb(238,11,22)] text-[#fff] border-2 border-black shadow-[3px_3px_0px_#000]"
-                      : "text-black/40 hover:text-black"
-                  }`}
-                >
-                  {m === "login" ? "Sign In" : "Sign Up"}
-                </button>
-              ))}
-            </div>
+            {mode !== "verify-otp" && (
+              <div className="flex bg-[#e0f8f8] border-2 border-black rounded-xl p-1 mb-6">
+                {["login", "register"].map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMode(m)}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-black uppercase tracking-widest transition-all ${
+                      mode === m
+                        ? "bg-[rgb(238,11,22)] text-[#fff] border-2 border-black shadow-[3px_3px_0px_#000]"
+                        : "text-black/40 hover:text-black"
+                    }`}
+                  >
+                    {m === "login" ? "Sign In" : "Sign Up"}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <AnimatePresence mode="popLayout">
-                {mode === "register" && (
+              <AnimatePresence mode="wait">
+                {mode === "verify-otp" ? (
                   <motion.div
-                    key="uname"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
+                    key="otp"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
                   >
-                    <label className="block text-xs font-black text-black uppercase tracking-widest mb-1.5">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="your_handle"
-                      value={form.username}
-                      onChange={(e) =>
-                        setForm({ ...form, username: e.target.value })
-                      }
-                      className="w-full bg-[#f0fafa] border-2 border-black rounded-lg px-4 py-2.5 text-black placeholder-black/25 focus:outline-none focus:border-[rgb(238,11,22)] text-sm font-mono shadow-[2px_2px_0px_#000] transition-all"
-                      required={mode === "register"}
-                    />
+                    <div className="mb-4">
+                      <p className="text-sm font-bold text-black/70 mb-4 text-center">
+                        We sent a 6-digit code to <strong>{form.email}</strong>.
+                      </p>
+                      <label className="block text-xs font-black text-black uppercase tracking-widest mb-1.5">
+                        Verification Code
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="123456"
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        className="w-full bg-[#f0fafa] border-2 border-black rounded-lg px-4 py-3 text-center text-black placeholder-black/25 focus:outline-none focus:border-[rgb(238,11,22)] text-2xl tracking-[0.5em] font-mono shadow-[2px_2px_0px_#000] transition-all"
+                        required
+                      />
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="form"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="space-y-4"
+                  >
+                    <AnimatePresence mode="popLayout">
+                      {mode === "register" && (
+                        <motion.div
+                          key="uname"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <label className="block text-xs font-black text-black uppercase tracking-widest mb-1.5">
+                            Username
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="your_handle"
+                            value={form.username}
+                            onChange={(e) =>
+                              setForm({ ...form, username: e.target.value })
+                            }
+                            className="w-full bg-[#f0fafa] border-2 border-black rounded-lg px-4 py-2.5 text-black placeholder-black/25 focus:outline-none focus:border-[rgb(238,11,22)] text-sm font-mono shadow-[2px_2px_0px_#000] transition-all"
+                            required={mode === "register"}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div>
+                      <label className="block text-xs font-black text-black uppercase tracking-widest mb-1.5">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="you@example.com"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        className="w-full bg-[#f0fafa] border-2 border-black rounded-lg px-4 py-2.5 text-black placeholder-black focus:outline-none focus:border-[rgb(238,11,22)] text-sm shadow-[2px_2px_0px_#000] transition-all"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-black uppercase tracking-widest mb-1.5">
+                        Password
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={form.password}
+                        onChange={(e) =>
+                          setForm({ ...form, password: e.target.value })
+                        }
+                        className="w-full bg-[#f0fafa] border-2 border-black rounded-lg px-4 py-2.5 text-[#040404] placeholder-black focus:outline-none focus:border-[rgb(238,11,22)] text-sm shadow-[2px_2px_0px_#000] transition-all"
+                        required
+                      />
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              <div>
-                <label className="block text-xs font-black text-black uppercase tracking-widest mb-1.5">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full bg-[#f0fafa] border-2 border-black rounded-lg px-4 py-2.5 text-black placeholder-black focus:outline-none focus:border-[rgb(238,11,22)] text-sm shadow-[2px_2px_0px_#000] transition-all"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-black uppercase tracking-widest mb-1.5">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm({ ...form, password: e.target.value })
-                  }
-                  className="w-full bg-[#f0fafa] border-2 border-black rounded-lg px-4 py-2.5 text-[#040404] placeholder-black focus:outline-none focus:border-[rgb(238,11,22)] text-sm shadow-[2px_2px_0px_#000] transition-all"
-                  required
-                />
-              </div>
 
               <button
                 type="submit"
@@ -312,6 +357,8 @@ export default function AuthPage() {
                     <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                     {mode === "login" ? "Signing in..." : "Creating..."}
                   </span>
+                ) : mode === "verify-otp" ? (
+                  "Verify & Join →"
                 ) : mode === "login" ? (
                   "Enter Arena →"
                 ) : (
