@@ -5,6 +5,7 @@ import { PORT, NODE_ENV } from "./config/constants.js";
 import Problem from "./models/Problem.js";
 import { PROBLEMS_SEED } from "./data/problems.seed.js";
 import { DEBUGGING_PROBLEMS_SEED } from "./data/debugging.seed.js";
+import { DEBUGGING_PROBLEMS_SEED as DEBUGGING_PROBLEMS_SEED_HARD } from "./data/debugging.seed.hard.js";
 
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION! Shutting down...");
@@ -14,7 +15,7 @@ process.on("uncaughtException", (err) => {
 
 const seedProblems = async () => {
   try {
-    const allSeeds = [...PROBLEMS_SEED, ...DEBUGGING_PROBLEMS_SEED];
+    const allSeeds = [...PROBLEMS_SEED, ...DEBUGGING_PROBLEMS_SEED, ...DEBUGGING_PROBLEMS_SEED_HARD];
     console.log(`Seeding ${allSeeds.length} problems if missing...`);
 
     const operations = allSeeds.map((problem) => ({
