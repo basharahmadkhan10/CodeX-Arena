@@ -57,7 +57,7 @@ int main(){
 };
 
 const MAX_TAB_SWITCHES    = 3;
-const MAX_VIOLATIONS      = 5;
+const MAX_VIOLATIONS      = 3;
 
 const TABS = ["problem", "results", "output"];
 
@@ -229,7 +229,12 @@ export default function BattlePage() {
   const autoForfeit = useCallback((reason) => {
     if (hasAutoForfeited) return;
     setHasAutoForfeited(true);
-    toast.error(`⚠️ Disqualified: ${reason}`, { duration: 5000 });
+    toast.error(
+      reason === "violation" 
+        ? "⚠️ Disqualified: Too many rule violations" 
+        : `⚠️ Disqualified: ${reason}`, 
+      { duration: 5000 }
+    );
 
     if (battle?.battleId) {
       setTimeout(() => forfeit(battle.battleId, reason), 800);
@@ -242,9 +247,9 @@ export default function BattlePage() {
   useEffect(() => {
     if (!isBattleActive || hasAutoForfeited) return;
     if (focusLostCount >= MAX_TAB_SWITCHES) {
-      autoForfeit(`Switched tabs ${focusLostCount} times (max ${MAX_TAB_SWITCHES})`);
+      autoForfeit("violation");
     } else if (Math.floor(violations) >= MAX_VIOLATIONS) {
-      autoForfeit(`Too many rule violations (${Math.floor(violations)})`);
+      autoForfeit("violation");
     }
   }, [focusLostCount, violations, isBattleActive, hasAutoForfeited, autoForfeit]);
 

@@ -73,11 +73,13 @@ export default function BattleResultModal({ result, you, onClose }) {
                      : reason === "timeout" ? "Time Limit Reached"
                      : reason === "forfeit" ? "Opponent Forfeited"
                      : reason === "disconnect" ? "Opponent Disconnected"
+                     : reason === "violation" ? "Opponent Disqualified: Rule Violation"
                      : `Opponent Disqualified: ${reason}`)
                   : (reason === "solved" ? "Opponent First to Solve"
                      : reason === "timeout" ? "Time Limit Reached"
                      : reason === "forfeit" ? "You Forfeited"
                      : reason === "disconnect" ? "You Disconnected"
+                     : reason === "violation" ? "Disqualified: Rule Violation"
                      : `Disqualified: ${reason}`)
               }
             </p>

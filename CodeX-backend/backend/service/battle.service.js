@@ -81,7 +81,12 @@ export const endBattle = async (battleId, winnerId, reason, io) => {
     battle.winner = winnerId || null;
     for (const p of battle.participants) {
       const pId       = (p.user._id || p.user).toString();
-      p.ratingChange  = pId === winnerId?.toString() ? RATING.WIN : RATING.LOSS;
+      
+      if (reason === "violation" && pId !== winnerId?.toString()) {
+        p.ratingChange = -200;
+      } else {
+        p.ratingChange  = pId === winnerId?.toString() ? RATING.WIN : RATING.LOSS;
+      }
     }
   }
 
