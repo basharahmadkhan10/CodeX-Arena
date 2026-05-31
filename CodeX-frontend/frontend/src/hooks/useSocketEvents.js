@@ -7,6 +7,8 @@ import toast from "react-hot-toast";
 
 
 const useSocketEvents = () => {
+  const user = useAuthStore((state) => state.user);
+
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
@@ -177,7 +179,7 @@ const useSocketEvents = () => {
       socket.off("battle:error", onBattleError);
       socket.off("reconnect", onReconnect);
     };
-  }, []);
+  }, [user]);
 };
 
 export default useSocketEvents;
