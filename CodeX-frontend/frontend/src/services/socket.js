@@ -1,5 +1,8 @@
 import { io } from "socket.io-client";
 
+const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const socketUrl = baseUrl.replace(/\/api\/v1$/, "");
+
 let socket = null;
 let isConnecting = false;
 let connectionPromise = null;
@@ -35,7 +38,7 @@ export const connectSocket = (token) => {
   connectionPromise = new Promise((resolve, reject) => {
     console.log("🔌 Creating socket with auth token...");
 
-    socket = io("https://codex-arena-backend-90y5.onrender.com", {
+    socket = io(socketUrl, {
       withCredentials: true,
       transports: ["websocket", "polling"],
       autoConnect: true,

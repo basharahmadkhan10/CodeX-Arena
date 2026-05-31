@@ -56,12 +56,18 @@ export const register = async (req, res, next) => {
 
     // Send email via Resend
     if (process.env.RESEND_API_KEY) {
-      await resend.emails.send({
+      const resendClient = new Resend(process.env.RESEND_API_KEY);
+      const { data, error } = await resendClient.emails.send({
         from: 'CodeX Arena <onboarding@resend.dev>', // Free tier allows sending to registered emails, so in prod use a verified domain
         to: email.toLowerCase(),
         subject: 'Verify your CodeX Arena Account',
         html: `<p>Welcome to CodeX Arena!</p><p>Your verification code is: <strong style="font-size: 24px;">${otpCode}</strong></p><p>This code expires in 5 minutes.</p>`
       });
+      if (error) {
+        console.error("[Resend Error]:", error);
+        return res.status(500).json({ success: false, message: "Failed to send email: " + error.message });
+      }
+      console.log(`[Resend Success]: Email sent to ${email.toLowerCase()}`);
     } else {
       console.log(`[DEV ONLY] OTP for ${email.toLowerCase()} is ${otpCode}`);
     }
