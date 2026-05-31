@@ -56,7 +56,6 @@ int main(){
 }`,
 };
 
-const MAX_FULLSCREEN_EXITS = 2;
 const MAX_TAB_SWITCHES    = 3;
 const MAX_VIOLATIONS      = 5;
 
@@ -183,7 +182,6 @@ export default function BattlePage() {
   const [focusLostCount,  setFocusLostCount]  = useState(0);
   const [isTabActive,     setIsTabActive]     = useState(true);
   const [isFullscreen,    setIsFullscreen]    = useState(() => !!document.fullscreenElement);
-  const [fullscreenExits, setFullscreenExits] = useState(0);
   const [hasAutoForfeited,setHasAutoForfeited]= useState(false);
   const [showVsScreen,    setShowVsScreen]    = useState(true);
 
@@ -243,14 +241,12 @@ export default function BattlePage() {
   // ── Threshold-based auto-forfeit ──────────────────────────────────
   useEffect(() => {
     if (!isBattleActive || hasAutoForfeited) return;
-    if (fullscreenExits >= MAX_FULLSCREEN_EXITS) {
-      autoForfeit(`Exited fullscreen ${fullscreenExits} times (max ${MAX_FULLSCREEN_EXITS})`);
-    } else if (focusLostCount >= MAX_TAB_SWITCHES) {
+    if (focusLostCount >= MAX_TAB_SWITCHES) {
       autoForfeit(`Switched tabs ${focusLostCount} times (max ${MAX_TAB_SWITCHES})`);
     } else if (Math.floor(violations) >= MAX_VIOLATIONS) {
       autoForfeit(`Too many rule violations (${Math.floor(violations)})`);
     }
-  }, [fullscreenExits, focusLostCount, violations, isBattleActive, hasAutoForfeited, autoForfeit]);
+  }, [focusLostCount, violations, isBattleActive, hasAutoForfeited, autoForfeit]);
 
   useAntiCheat(isBattleActive && !showVsScreen, (_type, count) => setViolations(count));
 
@@ -295,19 +291,6 @@ export default function BattlePage() {
     const syncFullscreen = () => {
       const nowFullscreen = !!document.fullscreenElement;
       setIsFullscreen(nowFullscreen);
-
-      // Count as an exit only if: we were fullscreen before, battle is real, not during VS screen
-      if (!nowFullscreen && isFullscreenRef.current && !showVsScreenRef.current && !hasAutoForfeitedRef.current) {
-        setFullscreenExits((prev) => {
-          const next = prev + 1;
-          const remaining = MAX_FULLSCREEN_EXITS - next;
-          if (remaining > 0) {
-            toast.error(`⚠️ Fullscreen required! ${remaining} warning${remaining === 1 ? "" : "s"} remaining.`, { duration: 4000 });
-          }
-          return next;
-        });
-        setViolations((prev) => prev + 2);
-      }
     };
 
     // Sync immediately when battle becomes active (covers VS-screen-to-editor transition)
@@ -397,10 +380,7 @@ export default function BattlePage() {
     ];
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isFullscreenRef.current && !hasAutoForfeited) {
-        e.preventDefault();
-        toast.error("⚠️ Escape exits fullscreen and counts as a violation!", { duration: 2000 });
-        setFullscreenExits((prev) => prev + 1);
-        setViolations((prev) => prev + 2);
+        // Let it naturally exit fullscreen, which will trigger the popup
         return;
       }
       if (["F12","F5","F8","F11","Control","Alt","Meta"].includes(e.key)) {
@@ -549,7 +529,6 @@ export default function BattlePage() {
   const isDebuggingBattle       = problem?.mode === "debugging";
   const isTimeCritical          = timeLeft <= 120;
   const myAC                    = submissionResult?.status === "AC";
-  const remainingFullscreenExits = Math.max(0, MAX_FULLSCREEN_EXITS - fullscreenExits);
   const remainingTabSwitches     = Math.max(0, MAX_TAB_SWITCHES    - focusLostCount);
 
   // ── Render ─────────────────────────────────────────────────────────
@@ -577,7 +556,6 @@ export default function BattlePage() {
               <Maximize2 size={48} className="mx-auto mb-4 text-[rgb(238,11,22)]" />
               <h2 className="text-2xl font-black mb-2">Fullscreen Required!</h2>
               <p className="text-black/60 mb-4">You must be in fullscreen mode to continue.</p>
-              <p className="text-sm font-bold text-red-600 mb-4">Violations: {fullscreenExits}/{MAX_FULLSCREEN_EXITS}</p>
               <button onClick={requestFullscreen} className="bg-[rgb(238,11,22)] text-white font-black px-6 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] hover:shadow-[2px_2px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] transition-all">
                 Enter Fullscreen
               </button>
@@ -623,18 +601,13 @@ export default function BattlePage() {
         </div>
 
         {/* Violation counters */}
-        {(violations > 0 || fullscreenExits > 0 || focusLostCount > 0) && (
+        {(violations > 0 || focusLostCount > 0) && (
           <div className="flex flex-col items-end gap-0.5">
             <div className={`flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg shadow-[2px_2px_0px_#000] ${violations >= MAX_VIOLATIONS ? "bg-red-100 text-red-700 border-2 border-red-500" : "bg-amber-100 text-amber-700 border-2 border-amber-400"}`}>
               <ShieldAlert size={12} />
               {Math.floor(violations)}/{MAX_VIOLATIONS}
             </div>
             <div className="flex gap-2 text-[10px] font-black">
-              {fullscreenExits > 0 && (
-                <span className={`px-1.5 py-0.5 rounded ${fullscreenExits >= MAX_FULLSCREEN_EXITS ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700"}`}>
-                  🖥️ {remainingFullscreenExits}/{MAX_FULLSCREEN_EXITS}
-                </span>
-              )}
               {focusLostCount > 0 && (
                 <span className={`px-1.5 py-0.5 rounded ${focusLostCount >= MAX_TAB_SWITCHES ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700"}`}>
                   🔄 {remainingTabSwitches}/{MAX_TAB_SWITCHES}

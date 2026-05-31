@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Swords } from "lucide-react";
 
 export default function VsPreloader({ you, opponent, mode, onComplete }) {
   useEffect(() => {
@@ -59,11 +60,7 @@ export default function VsPreloader({ you, opponent, mode, onComplete }) {
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
             >
-               <svg viewBox="0 0 32 32" fill="none" className="w-24 h-24 absolute">
-                  <path d="M24 4L6 22" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                  <path d="M24 4L28 8L10 26L6 26L6 22L24 4Z" fill="white" stroke="white" strokeWidth="0.5" />
-                  <path d="M3 29L6 26" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-               </svg>
+               <Swords size={96} strokeWidth={1} className="absolute text-white" />
             </motion.div>
           </div>
           

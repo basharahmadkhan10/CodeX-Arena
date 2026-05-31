@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import useAuthStore from "./store/authStore";
 import useSocketEvents from "./hooks/useSocketEvents";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { Swords } from "lucide-react";
 import Logo from "./components/Logo";
 import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/DashboardPage";
@@ -102,12 +103,7 @@ function GamePreloader() {
                 animate={{ scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }}
                 transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
               >
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
-                  <path d="M24 4L6 22" stroke="rgb(238,11,22)" strokeWidth="3" strokeLinecap="round"/>
-                  <path d="M24 4L28 8L10 26L6 26L6 22L24 4Z" fill="rgb(238,11,22)" stroke="rgb(238,11,22)" strokeWidth="0.5" strokeLinejoin="round"/>
-                  <path d="M3 29L6 26" stroke="rgb(238,11,22)" strokeWidth="3" strokeLinecap="round"/>
-                  <path d="M19 9L23 13" stroke="black" strokeWidth="1.5" strokeLinecap="round" opacity="0.3"/>
-                </svg>
+                <Swords size={40} className="text-[rgb(238,11,22)]" />
               </motion.div>
             </div>
           </div>
