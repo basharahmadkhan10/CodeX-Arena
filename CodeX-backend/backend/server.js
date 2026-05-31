@@ -20,7 +20,7 @@ const seedProblems = async () => {
     const operations = allSeeds.map((problem) => ({
       updateOne: {
         filter: { slug: problem.slug },
-        update: { $setOnInsert: problem },
+        update: { $set: problem },
         upsert: true,
       },
     }));
