@@ -1,12 +1,19 @@
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import User from "../models/User.js";
 import Battle from "../models/Battle.js";
 import Otp from "../models/Otp.js";
 import { GOOGLE_CLIENT_ID, JWT_SECRET, JWT_EXPIRES_IN } from "../config/constants.js";
 
-const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key");
+const transporter = nodemailer.createTransport({
+  host: process.env.MAILTRAP_HOST || "sandbox.smtp.mailtrap.io",
+  port: process.env.MAILTRAP_PORT || 2525,
+  auth: {
+    user: process.env.MAILTRAP_USER || "your_mailtrap_user",
+    pass: process.env.MAILTRAP_PASS || "your_mailtrap_pass",
+  },
+});
 
 const signToken = (id) => jwt.sign({ id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
@@ -54,20 +61,20 @@ export const register = async (req, res, next) => {
     await Otp.findOneAndDelete({ email: email.toLowerCase() });
     await Otp.create({ username, email: email.toLowerCase(), password, otp: otpCode });
 
-    // Send email via Resend
-    if (process.env.RESEND_API_KEY) {
-      const resendClient = new Resend(process.env.RESEND_API_KEY);
-      const { data, error } = await resendClient.emails.send({
-        from: 'CodeX Arena <onboarding@resend.dev>', // Free tier allows sending to registered emails, so in prod use a verified domain
-        to: email.toLowerCase(),
-        subject: 'Verify your CodeX Arena Account',
-        html: `<p>Welcome to CodeX Arena!</p><p>Your verification code is: <strong style="font-size: 24px;">${otpCode}</strong></p><p>This code expires in 5 minutes.</p>`
-      });
-      if (error) {
-        console.error("[Resend Error]:", error);
+    // Send email via Nodemailer (Mailtrap)
+    if (process.env.MAILTRAP_USER) {
+      try {
+        await transporter.sendMail({
+          from: '"CodeX Arena" <onboarding@codexarena.com>',
+          to: email.toLowerCase(),
+          subject: 'Verify your CodeX Arena Account',
+          html: `<p>Welcome to CodeX Arena!</p><p>Your verification code is: <strong style="font-size: 24px;">${otpCode}</strong></p><p>This code expires in 5 minutes.</p>`
+        });
+        console.log(`[Mailtrap Success]: Email sent to ${email.toLowerCase()}`);
+      } catch (error) {
+        console.error("[Mailtrap Error]:", error);
         return res.status(500).json({ success: false, message: "Failed to send email: " + error.message });
       }
-      console.log(`[Resend Success]: Email sent to ${email.toLowerCase()}`);
     } else {
       console.log(`[DEV ONLY] OTP for ${email.toLowerCase()} is ${otpCode}`);
     }

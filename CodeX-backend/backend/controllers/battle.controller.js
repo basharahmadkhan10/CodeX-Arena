@@ -1,4 +1,3 @@
-// src/controllers/battle.controller.js
 import { getBattleById } from "../service/battle.service.js";
 import Battle from "../models/Battle.js";
 
