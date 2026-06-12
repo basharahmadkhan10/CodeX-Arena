@@ -167,12 +167,12 @@ function RequireAuth({ children }) {
   const { user, isInitialized, isLoading } = useAuthStore();
 
   if (isLoading) return <GamePreloader />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
   return children;
 }
 
 export default function App() {
-  const { init, isLoading, isInitialized } = useAuthStore();
+  const { init, isLoading, isInitialized, user } = useAuthStore();
 
   useEffect(() => {
     init();
@@ -205,8 +205,7 @@ export default function App() {
         />
 
         <Routes>
-          <Route path="/login"              element={<AuthPage />} />
-          <Route path="/"                   element={<RequireAuth><ModesPage /></RequireAuth>} />
+          <Route path="/"                   element={!user ? <AuthPage /> : <ModesPage />} />
           <Route path="/dashboard"          element={<RequireAuth><HomePage /></RequireAuth>} />
           <Route path="/battle/1v1"         element={<RequireAuth><BattlePage /></RequireAuth>} />
           <Route path="/battle/debugging"   element={<RequireAuth><BattlePage /></RequireAuth>} />
