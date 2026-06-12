@@ -6,12 +6,12 @@ import Battle from "../models/Battle.js";
 import Otp from "../models/Otp.js";
 import { GOOGLE_CLIENT_ID, JWT_SECRET, JWT_EXPIRES_IN } from "../config/constants.js";
 
-const transporter = nodemailer.createTransport({
+const getTransporter = () => nodemailer.createTransport({
   host: process.env.MAILTRAP_HOST || "sandbox.smtp.mailtrap.io",
   port: process.env.MAILTRAP_PORT || 2525,
   auth: {
-    user: process.env.MAILTRAP_USER || "your_mailtrap_user",
-    pass: process.env.MAILTRAP_PASS || "your_mailtrap_pass",
+    user: process.env.MAILTRAP_USER,
+    pass: process.env.MAILTRAP_PASS,
   },
 });
 
@@ -64,6 +64,7 @@ export const register = async (req, res, next) => {
     // Send email via Nodemailer (Mailtrap)
     if (process.env.MAILTRAP_USER) {
       try {
+        const transporter = getTransporter();
         await transporter.sendMail({
           from: '"CodeX Arena" <onboarding@codexarena.com>',
           to: email.toLowerCase(),
