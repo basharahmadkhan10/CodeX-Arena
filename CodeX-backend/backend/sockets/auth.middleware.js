@@ -5,7 +5,7 @@ import { JWT_SECRET } from "../config/constants.js";
 
 const socketAuthMiddleware = async (socket, next) => {
   try {
-    // Accept token from auth handshake, Authorization header, or cookie
+    
     const token =
       socket.handshake.auth?.token ||
       socket.handshake.headers?.authorization?.split(" ")[1] ||
@@ -18,11 +18,7 @@ const socketAuthMiddleware = async (socket, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     const user    = await User.findById(decoded.id).select("-password");
-    if (!user) return next(new Error("User not found"));
-    // If a user disconnected mid-battle and the battle later ended,
-    // currentBattleId can be left pointing at a completed/cancelled
-    // battle. This causes "you are already in an active battle" errors
-    // even after a clean logout. Clear it on every fresh connect.
+    if (!user) return next(new Error("User not found"));
     if (user.currentBattleId) {
       const activeBattle = await Battle.findOne({
         _id:    user.currentBattleId,
@@ -30,7 +26,6 @@ const socketAuthMiddleware = async (socket, next) => {
       }).select("_id");
 
       if (!activeBattle) {
-        // Battle is gone or completed — wipe the stale reference
         user.currentBattleId = null;
       }
     }

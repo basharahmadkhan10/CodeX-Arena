@@ -1,9 +1,14 @@
-import axios from "axios";
+import axios from "axios";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
 const JUDGE0_URL      = process.env.JUDGE0_URL || "https://judge0-ce.p.rapidapi.com";
 const JUDGE0_API_KEY  = process.env.JUDGE0_API_KEY || null;
 const JDOODLE_CLIENT  = process.env.JDOODLE_CLIENT_ID || null;
 const JDOODLE_SECRET  = process.env.JDOODLE_CLIENT_SECRET || null;
-const PISTON_URL      = "https://emkc.org/api/v2/piston";
+const PISTON_URL      = process.env.PISTON_URL || "https://emkc.org/api/v2/piston";
+
 const JUDGE0_LANGUAGE_IDS = {
   javascript: 63,
   python:     71,
@@ -20,7 +25,6 @@ const PISTON_LANGUAGES = {
   c:          { language: "c",          version: "10.2.0"  },
 };
 
-// JDoodle language strings + version index
 const JDOODLE_LANGUAGES = {
   javascript: { language: "nodejs",   versionIndex: "4" },
   python:     { language: "python3",  versionIndex: "4" },
@@ -29,14 +33,12 @@ const JDOODLE_LANGUAGES = {
   c:          { language: "c",        versionIndex: "5" },
 };
 
-export const SUPPORTED_LANGUAGES = Object.keys(JUDGE0_LANGUAGE_IDS);
+export const SUPPORTED_LANGUAGES = Object.keys(JUDGE0_LANGUAGE_IDS);
+
 const sleep  = (ms) => new Promise((r) => setTimeout(r, ms));
 const normalize = (s) =>
   (s || "").trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
-/**
- * Retry wrapper — retries `fn` up to `attempts` times with exponential back-off.
- */
 async function withRetry(fn, attempts = 2, delayMs = 800) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
@@ -48,21 +50,82 @@ async function withRetry(fn, attempts = 2, delayMs = 800) {
     }
   }
   throw lastErr;
-}
-// Monthly counter stored in-memory (resets every 30 days).
+}
+
+// State Persistence for Judge0 Limits
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const STATE_FILE = path.join(__dirname, "..", "compiler_state.json");
+
 let judge0Count      = 0;
 let judge0LastReset  = Date.now();
 const JUDGE0_LIMIT   = parseInt(process.env.JUDGE0_MONTHLY_LIMIT || "45", 10);
+
+function loadCompilerState() {
+  try {
+    if (fs.existsSync(STATE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
+      judge0Count = data.judge0Count ?? 0;
+      judge0LastReset = data.judge0LastReset ?? Date.now();
+      console.log(`[Judge0 State] Loaded: count=${judge0Count}, lastReset=${new Date(judge0LastReset).toISOString()}`);
+    } else {
+      saveCompilerState();
+    }
+  } catch (err) {
+    console.error("[Judge0 State] Error loading state:", err.message);
+  }
+}
+
+function saveCompilerState() {
+  try {
+    fs.writeFileSync(
+      STATE_FILE,
+      JSON.stringify({ judge0Count, judge0LastReset }, null, 2),
+      "utf-8"
+    );
+  } catch (err) {
+    console.error("[Judge0 State] Error saving state:", err.message);
+  }
+}
+
+// Load initial state
+loadCompilerState();
 
 function resetJudge0IfNeeded() {
   if (Date.now() - judge0LastReset >= 30 * 24 * 60 * 60 * 1000) {
     judge0Count     = 0;
     judge0LastReset = Date.now();
+    saveCompilerState();
     console.log("[Judge0] monthly counter reset");
   }
 }
 
+// Circuit Breaker System
+const SUSPENSION_COOLDOWN_MS = 5 * 60 * 1000; // Suspend failing engine for 5 mins
+const engineStatus = {
+  Judge0:  { suspendedUntil: null, reason: "" },
+  JDoodle: { suspendedUntil: null, reason: "" },
+  Piston:  { suspendedUntil: null, reason: "" },
+};
+
+function suspendEngine(name, reason) {
+  engineStatus[name] = {
+    suspendedUntil: Date.now() + SUSPENSION_COOLDOWN_MS,
+    reason,
+  };
+  console.warn(`[Executor] ${name} suspended for 5m due to: ${reason}`);
+}
+
+function isEngineSuspended(name) {
+  const state = engineStatus[name];
+  if (state.suspendedUntil && Date.now() < state.suspendedUntil) {
+    return true;
+  }
+  state.suspendedUntil = null; // Reset once cooldown has passed
+  return false;
+}
+
 function canUseJudge0() {
+  if (isEngineSuspended("Judge0")) return false;
   resetJudge0IfNeeded();
   return !!(JUDGE0_API_KEY && judge0Count < JUDGE0_LIMIT);
 }
@@ -79,34 +142,53 @@ async function executeWithJudge0(code, language, stdin = "") {
 
   console.log(`[Judge0] submitting (remaining: ${JUDGE0_LIMIT - judge0Count})`);
 
-  const submitRes = await axios.post(
-    `${JUDGE0_URL}/submissions?base64_encoded=false&wait=true`,
-    {
-      source_code:      code,
-      language_id:      languageId,
-      stdin:            normalize(stdin.replace(/\\n/g, "\n")),
-      cpu_time_limit:   5,
-      wall_time_limit:  10,
-      memory_limit:     256000,
-    },
-    { headers, timeout: 20_000 }
-  );
+  try {
+    const submitRes = await axios.post(
+      `${JUDGE0_URL}/submissions?base64_encoded=false&wait=true`,
+      {
+        source_code:      code,
+        language_id:      languageId,
+        stdin:            normalize(stdin.replace(/\\n/g, "\n")),
+        cpu_time_limit:   5,
+        wall_time_limit:  10,
+        memory_limit:     256000,
+      },
+      { headers, timeout: 20_000 }
+    );
 
-  judge0Count++;
-  const d = submitRes.data;
-  if (!d || !d.status) throw new Error("Judge0: invalid response received");
+    judge0Count++;
+    saveCompilerState();
+    
+    const d = submitRes.data;
+    if (!d || !d.status) throw new Error("Judge0: invalid response received");
 
-  const statusId = d.status.id;
-  return {
-    output:    normalize(d.stdout || ""),
-    stderr:    normalize(d.stderr || d.compile_output || ""),
-    exitCode:  d.exit_code ?? (statusId === 3 ? 0 : 1),
-    timed_out: statusId === 5,
-    ce:        statusId === 6,
-    source:    "judge0",
-  };
-}
+    const statusId = d.status.id;
+    return {
+      output:    normalize(d.stdout || ""),
+      stderr:    normalize(d.stderr || d.compile_output || ""),
+      exitCode:  d.exit_code ?? (statusId === 3 ? 0 : 1),
+      timed_out: statusId === 5,
+      ce:        statusId === 6,
+      source:    "judge0",
+    };
+  } catch (err) {
+    const status = err.response?.status;
+    const data = err.response?.data;
+    const msg = data?.message || data?.error || err.message;
+    
+    if (status === 401 || status === 403) {
+      suspendEngine("Judge0", `Auth/Subscription issue: ${msg}`);
+      throw new Error(`Judge0 Auth/Subscription Error (${status}): ${msg}. Verify JUDGE0_API_KEY in .env.`);
+    } else if (status === 429) {
+      suspendEngine("Judge0", `Rate limit / monthly quota reached: ${msg}`);
+      throw new Error(`Judge0 Rate Limit (429): ${msg}. You have exceeded your API usage limit.`);
+    }
+    throw err;
+  }
+}
+
 function canUseJDoodle() {
+  if (isEngineSuspended("JDoodle")) return false;
   return !!(JDOODLE_CLIENT && JDOODLE_SECRET);
 }
 
@@ -116,179 +198,228 @@ async function executeWithJDoodle(code, language, stdin = "") {
 
   console.log("[JDoodle] submitting...");
 
-  const res = await axios.post(
-    "https://api.jdoodle.com/v1/execute",
-    {
-      clientId:     JDOODLE_CLIENT,
-      clientSecret: JDOODLE_SECRET,
-      script:       code,
-      stdin:        stdin || "",
-      language:     cfg.language,
-      versionIndex: cfg.versionIndex,
-    },
-    { timeout: 20_000 }
-  );
+  try {
+    const res = await axios.post(
+      "https://api.jdoodle.com/v1/execute",
+      {
+        clientId:     JDOODLE_CLIENT,
+        clientSecret: JDOODLE_SECRET,
+        script:       code,
+        stdin:        stdin || "",
+        language:     cfg.language,
+        versionIndex: cfg.versionIndex,
+      },
+      { timeout: 20_000 }
+    );
 
-  const d      = res.data;
-  // JDoodle returns statusCode 200 even on errors; inspect output field
-  const output = normalize(d.output || "");
-  const isErr  = (d.statusCode !== 200) || output.toLowerCase().startsWith("jdoodle: error");
-  const isCE   = isErr && (
-    output.includes("compilation error") ||
-    output.includes("error:") ||
-    output.includes("SyntaxError")
-  );
+    const d      = res.data;
+    
+    if (d.statusCode === 401 || d.statusCode === 403) {
+      suspendEngine("JDoodle", `Auth issue: ${d.error || 'Invalid credentials'}`);
+      throw new Error(`JDoodle Auth Error (${d.statusCode}): ${d.error || 'Invalid credentials'}. Check credentials in .env.`);
+    }
+    if (d.statusCode === 429) {
+      suspendEngine("JDoodle", "Daily limit reached");
+      throw new Error(`JDoodle Rate Limit (429): ${d.error || 'Daily limit reached'}.`);
+    }
 
-  if (d.statusCode === 429) throw new Error("JDoodle: daily limit reached");
+    const output = normalize(d.output || "");
+    const isErr  = (d.statusCode !== 200) || output.toLowerCase().startsWith("jdoodle: error");
+    const isCE   = isErr && (
+      output.includes("compilation error") ||
+      output.includes("error:") ||
+      output.includes("SyntaxError")
+    );
 
-  return {
-    output:    isErr ? ""  : output,
-    stderr:    isErr ? output : "",
-    exitCode:  isErr ? 1 : 0,
-    timed_out: output.includes("Time Limit Exceeded"),
-    ce:        isCE,
-    source:    "jdoodle",
-  };
-}
+    return {
+      output:    isErr ? ""  : output,
+      stderr:    isErr ? output : "",
+      exitCode:  isErr ? 1 : 0,
+      timed_out: output.includes("Time Limit Exceeded"),
+      ce:        isCE,
+      source:    "jdoodle",
+    };
+  } catch (err) {
+    if (err.message.startsWith("JDoodle Auth") || err.message.startsWith("JDoodle Rate")) {
+      throw err;
+    }
+    const status = err.response?.status;
+    const data = err.response?.data;
+    const msg = data?.error || data?.message || err.message;
+    
+    if (status === 401 || status === 403) {
+      suspendEngine("JDoodle", `Auth issue: ${msg}`);
+      throw new Error(`JDoodle Auth Error (${status}): ${msg}. Check client credentials in .env.`);
+    } else if (status === 429) {
+      suspendEngine("JDoodle", `Rate limit: ${msg}`);
+      throw new Error(`JDoodle Rate Limit (429): ${msg}`);
+    }
+    throw err;
+  }
+}
+
 async function executeWithPiston(code, language, stdin = "") {
   const cfg = PISTON_LANGUAGES[language];
   if (!cfg) throw new Error(`Piston: unsupported language — ${language}`);
 
   console.log("[Piston] submitting...");
 
-  const res = await fetch(`${PISTON_URL}/execute`, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      language: cfg.language,
-      version:  cfg.version,
-      files:    [{ content: code }],
-      stdin:    stdin || "",
-    }),
-    signal: AbortSignal.timeout(25_000), // hard 25 s cap
-  });
+  try {
+    const res = await fetch(`${PISTON_URL}/execute`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        language: cfg.language,
+        version:  cfg.version,
+        files:    [{ content: code }],
+        stdin:    stdin || "",
+      }),
+      signal: AbortSignal.timeout(25_000), // hard 25 s cap
+    });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Piston: HTTP ${res.status} — ${text.slice(0, 200)}`);
+    if (!res.ok) {
+      const text = await res.text();
+      let parsed = {};
+      try { parsed = JSON.parse(text); } catch (e) {}
+      const msg = parsed.message || text.slice(0, 200);
+
+      if (res.status === 401 || res.status === 403) {
+        suspendEngine("Piston", `Auth issue: ${msg}`);
+        throw new Error(`Piston Auth Error (${res.status}): ${msg}. Public Piston API is now whitelist-only. Run your own Piston server and set PISTON_URL in .env.`);
+      } else if (res.status === 429) {
+        suspendEngine("Piston", `Rate Limit / Limit reached: ${msg}`);
+        throw new Error(`Piston Rate Limit (429): ${msg}`);
+      }
+      throw new Error(`Piston: HTTP ${res.status} — ${msg}`);
+    }
+
+    const d      = await res.json();
+    const stdout = normalize(d.run?.stdout || "");
+    const stderr = normalize(d.run?.stderr || d.compile?.stderr || "");
+    const exitCode = d.run?.code ?? (stderr ? 1 : 0);
+    const isCE  = !!(d.compile?.code && d.compile.code !== 0);
+
+    return {
+      output:    stdout,
+      stderr:    stderr,
+      exitCode:  isCE ? 1 : exitCode,
+      timed_out: stderr.includes("Time Limit") || exitCode === 124,
+      ce:        isCE,
+      source:    "piston",
+    };
+  } catch (err) {
+    if (err.message.startsWith("Piston Auth") || err.message.startsWith("Piston Rate")) {
+      throw err;
+    }
+    throw err;
   }
+}
 
-  const d      = await res.json();
-  const stdout = normalize(d.run?.stdout || "");
-  const stderr = normalize(d.run?.stderr || d.compile?.stderr || "");
-  const exitCode = d.run?.code ?? (stderr ? 1 : 0);
-  const isCE  = !!(d.compile?.code && d.compile.code !== 0);
-
-  return {
-    output:    stdout,
-    stderr:    stderr,
-    exitCode:  isCE ? 1 : exitCode,
-    timed_out: stderr.includes("Time Limit") || exitCode === 124,
-    ce:        isCE,
-    source:    "piston",
-  };
-}
-/**
- * Priority chain:
- *   1. Judge0  (if API key set + monthly quota remaining)
- *   2. JDoodle (if credentials set)
- *   3. Piston  (always available, public)
- *
- * Each engine is wrapped in withRetry(…, 2) before falling to the next.
- */
 export async function executeCode(code, language, stdin = "") {
   const engines = [];
 
   if (canUseJudge0())  engines.push({ name: "Judge0",  fn: () => executeWithJudge0(code, language, stdin)  });
   if (canUseJDoodle()) engines.push({ name: "JDoodle", fn: () => executeWithJDoodle(code, language, stdin) });
-  engines.push(          { name: "Piston",  fn: () => executeWithPiston(code, language, stdin)  });
+  
+  if (!isEngineSuspended("Piston")) {
+    engines.push({ name: "Piston", fn: () => executeWithPiston(code, language, stdin) });
+  } else {
+    console.warn(`[Executor] Skipping Piston: Engine is suspended`);
+  }
 
   const errors = [];
   for (const engine of engines) {
     try {
       const result = await withRetry(engine.fn, 2, 800);
-      console.log(`[Executor] ✅ success via ${result.source}`);
+      console.log(`[Executor] success via ${result.source}`);
       return result;
     } catch (err) {
-      console.warn(`[Executor] ⚠️  ${engine.name} failed: ${err.message}`);
+      console.warn(`[Executor] ${engine.name} failed: ${err.message}`);
       errors.push(`${engine.name}: ${err.message}`);
     }
   }
 
   throw new Error(`All execution engines failed.\n${errors.join("\n")}`);
-}
+}
+
 export async function runTestCases(code, language, testCases) {
   const results      = new Array(testCases.length);
   let passed         = 0;
   let overallStatus  = "AC";
   let errorMessage   = null;
-  let ceFound        = false;
 
-  const BATCH_SIZE = 3;
-  for (let i = 0; i < testCases.length; i += BATCH_SIZE) {
-    if (ceFound) break;
-    const batch = testCases.slice(i, i + BATCH_SIZE);
-    
-    const batchResults = await Promise.all(batch.map(async (tc, batchIdx) => {
-      const idx = i + batchIdx;
-      try {
-        const exec = await executeCode(code, language, tc.input);
-        return { idx, tc, exec, err: null };
-      } catch (err) {
-        return { idx, tc, exec: null, err };
-      }
-    }));
+  for (let i = 0; i < testCases.length; i++) {
+    const tc = testCases[i];
+    try {
+      const exec = await executeCode(code, language, tc.input);
 
-    for (const { idx, tc, exec, err } of batchResults) {
-      if (ceFound) continue;
-
-      if (err) {
-        if (overallStatus === "AC") overallStatus = "RE";
-        errorMessage = err.message;
-        results[idx] = makeResult(idx, tc, `Error: ${err.message}`, false);
-        continue;
-      }
       if (exec.ce) {
         overallStatus = "CE";
         errorMessage  = exec.stderr.slice(0, 500);
-        results[idx] = makeResult(idx, tc, `Compilation Error:\n${exec.stderr.slice(0, 200)}`, false);
-        ceFound = true;
-        continue;
-      }
+        results[i] = makeResult(i, tc, `Compilation Error:\n${exec.stderr.slice(0, 200)}`, false);
+        break; // Exit early on compilation error
+      }
+
       if (exec.timed_out) {
-        if (overallStatus === "AC") overallStatus = "TLE";
-        results[idx] = makeResult(idx, tc, "Time Limit Exceeded", false);
-        continue;
-      }
+        overallStatus = "TLE";
+        results[i] = makeResult(i, tc, "Time Limit Exceeded", false);
+        break; // Exit early on time limit exceeded
+      }
+
       if (exec.exitCode !== 0 && exec.stderr) {
-        if (overallStatus === "AC") overallStatus = "RE";
+        overallStatus = "RE";
         errorMessage = exec.stderr.slice(0, 300);
-        results[idx] = makeResult(idx, tc, `Runtime Error:\n${exec.stderr.slice(0, 150)}`, false);
-        continue;
-      }
+        results[i] = makeResult(i, tc, `Runtime Error:\n${exec.stderr.slice(0, 150)}`, false);
+        break; // Exit early on runtime error
+      }
+
       const actual   = normalize(exec.output);
       const expected = normalize(tc.output);
       const ok       = actual === expected;
 
-      if (ok) passed++;
-      else if (overallStatus === "AC") overallStatus = "WA";
+      if (ok) {
+        passed++;
+      } else {
+        overallStatus = "WA";
+        results[i] = {
+          testCase:       i + 1,
+          input:          tc.isPublic ? tc.input    : "***hidden***",
+          expectedOutput: tc.isPublic ? expected    : "***hidden***",
+          actualOutput:   tc.isPublic ? actual      : "✗ Wrong",
+          passed:         false,
+          isPublic:       tc.isPublic,
+        };
+        break; // Exit early on wrong answer
+      }
 
-      results[idx] = {
-        testCase:       idx + 1,
+      results[i] = {
+        testCase:       i + 1,
         input:          tc.isPublic ? tc.input    : "***hidden***",
         expectedOutput: tc.isPublic ? expected    : "***hidden***",
-        actualOutput:   tc.isPublic ? actual      : (ok ? "✓ Correct" : "✗ Wrong"),
-        passed:         ok,
+        actualOutput:   tc.isPublic ? actual      : "✓ Correct",
+        passed:         true,
         isPublic:       tc.isPublic,
       };
+
+    } catch (err) {
+      overallStatus = "RE";
+      errorMessage = err.message;
+      results[i] = makeResult(i, tc, `Error: ${err.message}`, false);
+      break; // Exit early on connection/API failure
     }
   }
 
-  if (ceFound) {
-    for (let j = 0; j < testCases.length; j++) {
-      if (!results[j]) {
-        results[j] = makeResult(j, testCases[j], "Compilation Error", false);
-      }
+  // Populate any unrun test cases due to early exit with placeholder info so frontend renders it cleanly
+  for (let j = 0; j < testCases.length; j++) {
+    if (!results[j]) {
+      results[j] = {
+        testCase:       j + 1,
+        input:          testCases[j].isPublic ? testCases[j].input : "***hidden***",
+        expectedOutput: testCases[j].isPublic ? testCases[j].output : "***hidden***",
+        actualOutput:   overallStatus === "CE" ? "Compilation Error" : "Skipped",
+        passed:         false,
+        isPublic:       testCases[j].isPublic,
+      };
     }
   }
 
@@ -304,7 +435,8 @@ function makeResult(i, tc, actualOutput, passed) {
     passed,
     isPublic:       tc.isPublic,
   };
-}
+}
+
 export function getExecutionStatus() {
   resetJudge0IfNeeded();
   return {
@@ -318,7 +450,7 @@ export function getExecutionStatus() {
       type:      "primary-backup",
     },
     piston: {
-      available: true,
+      available: !isEngineSuspended("Piston"),
       type:      "last-resort",
     },
   };

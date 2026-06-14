@@ -17,3 +17,6 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Local compiler state cache
+compiler_state.json

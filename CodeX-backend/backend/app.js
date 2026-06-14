@@ -19,7 +19,7 @@ const server = http.createServer(app);
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { 

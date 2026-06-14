@@ -19,14 +19,15 @@ const signToken = (id) => jwt.sign({ id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_
 
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
-// Shared cookie config — single source of truth
+
 const cookieOptions = () => ({
   httpOnly: true,
   secure:   process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   maxAge:   7 * 24 * 60 * 60 * 1000,
   ...(process.env.NODE_ENV === "production" && { domain: ".onrender.com" }),
-});
+});
+
 const createUniqueUsername = async (email, googleId) => {
   const base = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 16) || "player";
   let username = base;
@@ -37,7 +38,8 @@ const createUniqueUsername = async (email, googleId) => {
   }
   if (!username) username = `google_${String(googleId).slice(-6)}`;
   return username.slice(0, 20);
-};
+};
+
 export const register = async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
@@ -54,14 +56,12 @@ export const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: `${field} is already taken` });
     }
 
-    // Generate 6 digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store in DB (delete existing if any)
+
     await Otp.findOneAndDelete({ email: email.toLowerCase() });
     await Otp.create({ username, email: email.toLowerCase(), password, otp: otpCode });
 
-    // Send email via Nodemailer (Mailtrap)
     if (process.env.MAILTRAP_USER) {
       try {
         const transporter = getTransporter();
@@ -99,7 +99,6 @@ export const verifyOTP = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
     }
 
-    // Ensure username or email hasn't been taken in the meantime
     const existingUser = await User.findOne({
       $or: [{ email: record.email }, { username: record.username }],
     });
@@ -108,14 +107,12 @@ export const verifyOTP = async (req, res, next) => {
       return res.status(409).json({ success: false, message: "Username or email was taken during verification." });
     }
 
-    // create user
     const user = await User.create({
       username: record.username,
       email: record.email,
       password: record.password
     });
     
-    // delete otp record
     await Otp.findByIdAndDelete(record._id);
 
     const token = signToken(user._id);
@@ -125,7 +122,8 @@ export const verifyOTP = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
+};
+
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -153,7 +151,8 @@ export const login = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
+};
+
 export const googleAuth = async (req, res, next) => {
   try {
     if (!googleClient || !GOOGLE_CLIENT_ID)
@@ -200,12 +199,12 @@ export const googleAuth = async (req, res, next) => {
     console.error("Google Auth Error:", err);
     next(err);
   }
-};
+};
+
 export const getMe = async (req, res) => {
   res.json({ success: true, user: req.user.toSafeObject() });
-};
-// FIX: clear currentBattleId so the user is never stuck in "already in battle"
-// FIX: also end any active battle they're in so opponent isn't left hanging
+};
+
 export const logout = async (req, res, next) => {
   try {
     if (req.user?._id) {

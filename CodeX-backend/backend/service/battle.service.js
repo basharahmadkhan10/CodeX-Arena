@@ -4,7 +4,8 @@ import Problem from "../models/Problem.js";
 import { runTestCases } from "./codeExecution.service.js";
 import { clearBattleTimer } from "./matchmaking.service.js";
 
-const RATING = { WIN: 50, LOSS: -25, DRAW: 5 };
+const RATING = { WIN: 50, LOSS: -25, DRAW: 5 };
+
 export const submitSolution = async (battleId, userId, code, language, io) => {
   const battle = await Battle.findById(battleId).populate("problem");
   if (!battle)                      throw new Error("Battle not found");
@@ -27,7 +28,6 @@ export const submitSolution = async (battleId, userId, code, language, io) => {
   participant.result      = { passed, total, status, errorMessage: errorMessage || null };
   await battle.save();
 
-  // Broadcast submission update to the room (so opponent sees progress)
   io.to(battle.roomId).emit("battle:submission_update", {
     userId,
     status,
@@ -36,21 +36,17 @@ export const submitSolution = async (battleId, userId, code, language, io) => {
     language,
   });
 
-  // FIX: endBattle now clears the timer internally — no need to do it here.
-  // Previously this required a second DB query after endBattle which could
-  // miss the clearBattleTimer call if an exception occurred before it.
   if (status === "AC") {
     await endBattle(battle._id, userId, "solved", io);
   }
 
   return { status, passed, total, results, errorMessage };
-};
+};
+
 export const endBattle = async (battleId, winnerId, reason, io) => {
   const battle = await Battle.findById(battleId).populate("participants.user");
   if (!battle || battle.status !== "active") return;
 
-  // FIX: clear the server timer FIRST — before any await that could throw —
-  // so a double-call (e.g. AC submit + timeout race) never fires twice.
   clearBattleTimer(battle.roomId);
 
   battle.status   = "completed";
@@ -92,7 +88,6 @@ export const endBattle = async (battleId, winnerId, reason, io) => {
 
   await battle.save();
 
-  // Update all participants' stats and clear their currentBattleId
   for (const participant of battle.participants) {
     const uid = participant.user._id || participant.user;
     const u   = await User.findById(uid);
@@ -100,7 +95,7 @@ export const endBattle = async (battleId, winnerId, reason, io) => {
 
     u.rating         = Math.max(0, u.rating + participant.ratingChange);
     u.totalBattles  += 1;
-    u.currentBattleId = null;   // FIX: always clear so next login is clean
+    u.currentBattleId = null;  
 
     const wid = battle.winner?.toString();
     if (!battle.winner)             u.draws  += 1;
@@ -111,12 +106,10 @@ export const endBattle = async (battleId, winnerId, reason, io) => {
     await u.save();
   }
 
-  // Increment problem solve count on a real solve
   if (reason === "solved" && battle.problem) {
     await Problem.findByIdAndUpdate(battle.problem, { $inc: { solveCount: 1 } });
   }
 
-  // Emit result to both players
   io.to(battle.roomId).emit("battle:ended", {
     winnerId:     battle.winner?.toString() || null,
     reason,
@@ -131,8 +124,9 @@ export const endBattle = async (battleId, winnerId, reason, io) => {
     })),
   });
 
-  console.log(`🏁 Battle [${battle.roomId}] ended — ${reason}`);
-};
+  console.log(`Battle [${battle.roomId}] ended — ${reason}`);
+};
+
 export const getBattleById = (id) =>
   Battle.findById(id)
     .populate("problem", "title description difficulty examples constraints tags starterCode")
