@@ -112,7 +112,7 @@ export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }
                   <span>Progression to {rankInfo.nextRank.tier}</span>
                   <span className="font-black text-red-600 dark:text-red-400">{rankInfo.progressPct}%</span>
                 </div>
-                <div className="w-full h-4 bg-black/90 dark:bg-black rounded-lg border-2 border-black dark:border-zinc-700 overflow-hidden relative shadow-[2px_2px_0px_#000] p-0.5">
+                <div className="w-full h-7 sm:h-8 bg-black/90 dark:bg-black rounded-lg border-2 border-black dark:border-zinc-700 overflow-hidden relative shadow-[3px_3px_0px_#000] p-0.5">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${rankInfo.progressPct}%` }}
@@ -125,9 +125,9 @@ export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }
                       backgroundSize: "14px 14px",
                     }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-[9px] font-black tracking-widest text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] font-mono">
-                      {rankInfo.progressPct}% · {currentRating} / {rankInfo.maxRp + 1} RP
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-3">
+                    <span className="text-xs sm:text-sm font-black tracking-wider text-white drop-shadow-[0_2px_3px_rgba(0,0,0,1)] font-mono">
+                      {rankInfo.progressPct}% COMPLETE · {currentRating} / {rankInfo.maxRp + 1} RP
                     </span>
                   </div>
                 </div>

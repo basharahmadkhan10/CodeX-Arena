@@ -81,22 +81,19 @@ export default function DashboardPage() {
           {/* Rank Badge / Trophy Road trigger */}
           <button
             onClick={() => setIsRankRoadOpen(true)}
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_rgba(255,255,255,0.08)] hover:scale-102 transition-all group"
+            className="flex items-center gap-2 px-2.5 py-1 rounded-lg border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_rgba(255,255,255,0.08)] hover:scale-102 transition-all group h-9"
             title="Open Trophy Road & Ranks"
           >
-            <RankBadge rating={user?.rating || 1000} size="sm" showSub={true} />
+            <RankBadge rating={user?.rating || 1000} size="xs" showSub={false} />
             <div className="text-left hidden sm:block">
               <div className="flex items-center gap-1.5 leading-none">
-                <span className="text-xs font-black uppercase text-black dark:text-white">
+                <span className="text-[11px] font-black uppercase text-black dark:text-white">
                   {rankInfo.tier}
                 </span>
-                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-1 rounded">
+                <span className="text-[9px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-1 rounded font-mono">
                   {user?.rating || 1000} RP
                 </span>
               </div>
-              <span className="text-[10px] font-black text-black/50 dark:text-zinc-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
-                Trophy Road →
-              </span>
             </div>
           </button>
 
@@ -230,7 +227,7 @@ export default function DashboardPage() {
               {rankInfo.nextRank ? (
                 <div className="space-y-1.5">
                   {/* Clean Esports Segmented Level Bar */}
-                  <div className="w-full h-4 bg-black/90 dark:bg-black rounded-lg border-2 border-black dark:border-zinc-700 overflow-hidden relative shadow-[2px_2px_0px_#000] dark:shadow-none p-0.5">
+                  <div className="w-full h-7 sm:h-8 bg-black/90 dark:bg-black rounded-lg border-2 border-black dark:border-zinc-700 overflow-hidden relative shadow-[3px_3px_0px_#000] dark:shadow-none p-0.5">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${rankInfo.progressPct}%` }}
@@ -243,9 +240,9 @@ export default function DashboardPage() {
                         backgroundSize: "14px 14px",
                       }}
                     />
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <span className="text-[9px] font-black tracking-widest text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] font-mono">
-                        {rankInfo.progressPct}% · {user?.rating || 1000} / {rankInfo.maxRp + 1} RP
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-3">
+                      <span className="text-xs sm:text-sm font-black tracking-wider text-white drop-shadow-[0_2px_3px_rgba(0,0,0,1)] font-mono">
+                        {rankInfo.progressPct}% COMPLETE · {user?.rating || 1000} / {rankInfo.maxRp + 1} RP
                       </span>
                     </div>
                   </div>

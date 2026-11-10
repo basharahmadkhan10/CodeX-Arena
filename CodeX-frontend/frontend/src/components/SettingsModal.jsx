@@ -5,15 +5,10 @@ import {
   User,
   Palette,
   Cpu,
-  Sparkles,
-  Check,
   ShieldCheck,
-  Upload,
-  Link,
-  Flame,
   Moon,
   Sun,
-  AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import useAuthStore from "../store/authStore";
@@ -61,6 +56,26 @@ const PRESET_AVATARS = [
     name: "Code Sorcerer",
     url: "https://api.dicebear.com/7.x/bottts/svg?seed=CyberVanguard&backgroundColor=ffd5dc",
   },
+  {
+    id: "ghost",
+    name: "Ghost Dev",
+    url: "https://api.dicebear.com/7.x/bottts/svg?seed=GhostDevX&backgroundColor=ffdfbf",
+  },
+  {
+    id: "sentinel",
+    name: "Iron Sentinel",
+    url: "https://api.dicebear.com/7.x/bottts/svg?seed=IronSentinel&backgroundColor=b6e3f4",
+  },
+  {
+    id: "ronin",
+    name: "Cyber Ronin",
+    url: "https://api.dicebear.com/7.x/adventurer/svg?seed=CyberRoninX&backgroundColor=d1d4f9",
+  },
+  {
+    id: "dragon",
+    name: "Pixel Dragon",
+    url: "https://api.dicebear.com/7.x/pixel-art/svg?seed=PixelDragon&backgroundColor=ffd5dc",
+  },
 ];
 
 export default function SettingsModal({ isOpen, onClose }) {
@@ -70,9 +85,7 @@ export default function SettingsModal({ isOpen, onClose }) {
   // Profile form state
   const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState("");
-  const [customAvatarUrl, setCustomAvatarUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [avatarTestStatus, setAvatarTestStatus] = useState(null); // 'valid' | 'invalid' | null
 
   // Theme state
   const [isDark, setIsDark] = useState(false);
@@ -81,7 +94,6 @@ export default function SettingsModal({ isOpen, onClose }) {
     if (user) {
       setUsername(user.username || "");
       setAvatar(user.avatar || "");
-      setCustomAvatarUrl(user.avatar?.startsWith("http") ? user.avatar : "");
     }
     // Check initial dark mode from DOM
     const savedTheme = localStorage.getItem("codex_theme");
@@ -108,33 +120,6 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   const handleSelectPreset = (url) => {
     setAvatar(url);
-    setCustomAvatarUrl(url);
-    setAvatarTestStatus("valid");
-  };
-
-  const handleCustomUrlChange = (e) => {
-    const val = e.target.value;
-    setCustomAvatarUrl(val);
-    setAvatar(val);
-    setAvatarTestStatus(null);
-  };
-
-  const handleTestAvatar = () => {
-    if (!customAvatarUrl) {
-      toast.error("Please enter an image URL first");
-      return;
-    }
-    const img = new Image();
-    img.onload = () => {
-      setAvatar(customAvatarUrl);
-      setAvatarTestStatus("valid");
-      toast.success("Image verified successfully!");
-    };
-    img.onerror = () => {
-      setAvatarTestStatus("invalid");
-      toast.error("Could not load image from this URL");
-    };
-    img.src = customAvatarUrl;
   };
 
   const handleSaveProfile = async (e) => {
@@ -197,8 +182,8 @@ export default function SettingsModal({ isOpen, onClose }) {
               </div>
               <div>
                 <h2 className="text-xl font-black tracking-tight">ARENA SETTINGS</h2>
-                <p className="text-xs font-bold text-white/70 uppercase tracking-widest">
-                  Customize Identity, Themes & Safe Engines
+                <p className="text-xs font-bold text-white/70 uppercase tracking-widest font-mono">
+                  Identity, Avatars & UI Themes
                 </p>
               </div>
             </div>
@@ -270,14 +255,14 @@ export default function SettingsModal({ isOpen, onClose }) {
                       <span className="text-lg font-black text-black dark:text-white truncate">
                         {username || "Your Name"}
                       </span>
-                      <span className="bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 text-[10px] font-black px-2 py-0.5 rounded-full">
+                      <span className="bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 text-[10px] font-black px-2 py-0.5 rounded-full font-mono">
                         {rankInfo.tier}
                       </span>
                     </div>
                     <p className="text-xs font-bold text-black/50 dark:text-zinc-400 mt-0.5 truncate">
                       {user?.email}
                     </p>
-                    <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                    <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-mono">
                       <ShieldCheck size={13} /> {user?.authProvider === "google" ? "Google Account Connected" : "Email & Password Verified"}
                     </p>
                   </div>
@@ -285,7 +270,7 @@ export default function SettingsModal({ isOpen, onClose }) {
 
                 {/* Username Input */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-black/70 dark:text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider text-black/70 dark:text-zinc-300 mb-1.5 font-mono">
                     Username
                   </label>
                   <div className="relative">
@@ -297,24 +282,24 @@ export default function SettingsModal({ isOpen, onClose }) {
                       placeholder="Enter new username"
                       className="w-full px-4 py-3 rounded-xl border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 font-bold text-black dark:text-white shadow-[3px_3px_0px_#000] focus:outline-none focus:border-red-600 transition-colors"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-black/40 dark:text-zinc-500">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-black/40 dark:text-zinc-500 font-mono">
                       {username.length}/20
                     </span>
                   </div>
                   <p className="text-[11px] text-black/50 dark:text-zinc-400 font-medium mt-1">
-                    Letters, numbers, and underscores only. Must be unique across all players.
+                    Letters, numbers, and underscores only (3-20 characters).
                   </p>
                 </div>
 
                 {/* Preset Avatars Grid */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-black/70 dark:text-zinc-300 mb-2 flex items-center justify-between">
-                    <span>Choose Preset Avatar</span>
+                  <label className="block text-xs font-black uppercase tracking-wider text-black/70 dark:text-zinc-300 mb-2 flex items-center justify-between font-mono">
+                    <span>Select Avatar</span>
                     <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
-                      Esports Presets
+                      12 Esports Avatars
                     </span>
                   </label>
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                     {PRESET_AVATARS.map((p) => {
                       const isSelected = avatar === p.url;
                       return (
@@ -324,7 +309,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                           onClick={() => handleSelectPreset(p.url)}
                           className={`relative aspect-square rounded-xl border-2 p-1 transition-all ${
                             isSelected
-                              ? "border-red-600 bg-red-50 dark:bg-red-950/40 shadow-[3px_3px_0px_#ef4444] scale-105"
+                              ? "border-red-600 bg-red-50 dark:bg-red-950/40 shadow-[4px_4px_0px_#ef4444] scale-105"
                               : "border-black dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-[2px_2px_0px_#000] hover:scale-102"
                           }`}
                           title={p.name}
@@ -335,7 +320,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                             className="w-full h-full object-cover rounded-lg"
                           />
                           {isSelected && (
-                            <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[9px]">
+                            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-600 text-white font-black flex items-center justify-center text-[10px] border border-black shadow">
                               ✓
                             </div>
                           )}
@@ -343,39 +328,6 @@ export default function SettingsModal({ isOpen, onClose }) {
                       );
                     })}
                   </div>
-                </div>
-
-                {/* Custom ImageKit / Direct Image URL */}
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-black/70 dark:text-zinc-300 mb-1.5 flex items-center gap-1.5">
-                    <Link size={13} /> Or Custom Avatar URL (ImageKit / CDN)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={customAvatarUrl}
-                      onChange={handleCustomUrlChange}
-                      placeholder="https://ik.imagekit.io/your_id/avatar.png"
-                      className="flex-1 px-4 py-2.5 rounded-xl border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 font-medium text-xs text-black dark:text-white shadow-[3px_3px_0px_#000] focus:outline-none focus:border-red-600"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleTestAvatar}
-                      className="px-4 py-2.5 rounded-xl border-2 border-black dark:border-zinc-700 bg-black text-white dark:bg-zinc-800 font-black text-xs uppercase tracking-wider shadow-[3px_3px_0px_#000] hover:bg-black/80"
-                    >
-                      Test
-                    </button>
-                  </div>
-                  {avatarTestStatus === "valid" && (
-                    <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
-                      <Check size={12} /> Image verified and loaded!
-                    </p>
-                  )}
-                  {avatarTestStatus === "invalid" && (
-                    <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1">
-                      <AlertCircle size={12} /> Image failed to load. Check CORS and URL format.
-                    </p>
-                  )}
                 </div>
 
                 {/* Save Button */}
@@ -487,7 +439,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                 </div>
 
                 <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-400 dark:border-amber-700 rounded-xl">
-                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300 font-mono">
                     💡 Theme preference is saved locally on your device and automatically applies to all matches and pages.
                   </p>
                 </div>
@@ -513,10 +465,10 @@ export default function SettingsModal({ isOpen, onClose }) {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-black text-black dark:text-white uppercase tracking-wider">
+                        <h4 className="text-xs font-black text-black dark:text-white uppercase tracking-wider font-mono">
                           Local Safe Execution Sandbox
                         </h4>
-                        <span className="text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400">
+                        <span className="text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400 font-mono">
                           ACTIVE (4s Watchdog)
                         </span>
                       </div>
@@ -532,10 +484,10 @@ export default function SettingsModal({ isOpen, onClose }) {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-black text-black dark:text-white uppercase tracking-wider">
+                        <h4 className="text-xs font-black text-black dark:text-white uppercase tracking-wider font-mono">
                           Anti-Cheat & Tab Integrity
                         </h4>
-                        <span className="text-[10px] font-black bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-400">
+                        <span className="text-[10px] font-black bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-400 font-mono">
                           ENFORCED
                         </span>
                       </div>
@@ -551,10 +503,10 @@ export default function SettingsModal({ isOpen, onClose }) {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-black text-black dark:text-white uppercase tracking-wider">
+                        <h4 className="text-xs font-black text-black dark:text-white uppercase tracking-wider font-mono">
                           Elo Rating Engine (0 - 5000 RP)
                         </h4>
-                        <span className="text-[10px] font-black bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full border border-purple-400">
+                        <span className="text-[10px] font-black bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full border border-purple-400 font-mono">
                           CALIBRATED
                         </span>
                       </div>
@@ -572,4 +524,3 @@ export default function SettingsModal({ isOpen, onClose }) {
     </AnimatePresence>
   );
 }
-
