@@ -13,7 +13,7 @@ import socketHandler from "./sockets/index.js";
 import MatchmakingService from "./service/matchmaking.service.js";
 
 const app = express();
-app.set('trust proxy', 1); 
+app.set('trust proxy', 1);
 
 const server = http.createServer(app);
 
@@ -22,9 +22,9 @@ const globalLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { 
-    success: false, 
-    message: "Too many requests, please try again later." 
+  message: {
+    success: false,
+    message: "Too many requests, please try again later."
   },
   keyGenerator: (req) => {
     let ip = req.ip;
@@ -38,7 +38,7 @@ const globalLimiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  skipSuccessfulRequests: true, 
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -73,7 +73,7 @@ const io = new Server(server, {
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginOpenerPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
   })
 );
 
@@ -89,7 +89,7 @@ app.use(
 );
 
 // Body parsing
-app.use(express.json({ limit: "10mb" })); 
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
 

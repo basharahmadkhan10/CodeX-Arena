@@ -1,13 +1,13 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { getSocket } from "../services/socket";
 import useBattleStore from "../store/battleStore";
 import useAuthStore from "../store/authStore";
 import toast from "react-hot-toast";
 
-
-
 const useSocketEvents = () => {
   const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const socket = getSocket();
@@ -44,13 +44,15 @@ const useSocketEvents = () => {
 
     const onMatchmakingRejoinActive = ({ message }) => {
       toast(message || "Rejoining active battle...", { icon: "🔄" });
-      useBattleStore.getState().fetchActiveBattle();
+      useBattleStore.getState().fetchActiveBattle().then(() => {
+        if (!window.location.pathname.startsWith("/battle/")) {
+          navigate("/battle/1v1");
+        }
+      });
     };
 
     // ── Battle matched ────────────────────────────────────────────
     // Server emits battle:matched exactly ONCE per player.
-    // battle:started listener removed — it was a duplicate that fired
-    // with no problem data and wiped battle state.
     const onMatched = (data) => {
       console.log("⚔️ battle:matched received", data.roomId);
 
@@ -69,6 +71,12 @@ const useSocketEvents = () => {
       });
 
       useBattleStore.getState().startTimer(parseInt(data.timeLimit) || 1800);
+
+      // Automatically navigate to battle arena if not already there
+      const targetRoute = data.mode === "debugging" ? "/battle/debugging" : "/battle/1v1";
+      if (!window.location.pathname.startsWith("/battle/")) {
+        navigate(targetRoute);
+      }
     };
 
     // ── During battle ─────────────────────────────────────────────
@@ -179,7 +187,7 @@ const useSocketEvents = () => {
       socket.off("battle:error", onBattleError);
       socket.off("reconnect", onReconnect);
     };
-  }, [user]);
+  }, [user, navigate]);
 };
 
 export default useSocketEvents;

@@ -184,6 +184,10 @@ export default function BattlePage() {
   const [isFullscreen,    setIsFullscreen]    = useState(() => !!document.fullscreenElement);
   const [hasAutoForfeited,setHasAutoForfeited]= useState(false);
   const [showVsScreen,    setShowVsScreen]    = useState(true);
+  const [isRehydrating,   setIsRehydrating]   = useState(() => {
+    const s = useBattleStore.getState();
+    return !s.battle && s.queueStatus !== "searching";
+  });
 
   const editorRef            = useRef(null);
   const violationIntervalRef = useRef(null);
@@ -202,12 +206,19 @@ export default function BattlePage() {
   useEffect(() => {
     useBattleStore.getState().initSocketListeners();
 
-    // If the store has no battle (e.g. after a page refresh) try to fetch
-    // one from the server — but only if we're not already mid-search
-    const state = useBattleStore.getState();
-    if (!state.battle && state.queueStatus !== "searching") {
-      fetchActiveBattle();
-    }
+    const rehydrate = async () => {
+      const state = useBattleStore.getState();
+      if (!state.battle && state.queueStatus !== "searching") {
+        try {
+          await fetchActiveBattle();
+        } catch (e) {
+          console.warn("[BattlePage] Rehydration error:", e.message);
+        }
+      }
+      setIsRehydrating(false);
+    };
+
+    rehydrate();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Socket reconnect — rejoin battle room ──────────────────────────
@@ -225,7 +236,7 @@ export default function BattlePage() {
     return () => socket.off("reconnect", handleReconnect);
   }, [battle]);
 
-  // ── Auto-forfeit helper ────────────────────────────────────────────
+  // ── Auto-forfeit helper ────────────────────────────────────
   const autoForfeit = useCallback((reason) => {
     if (hasAutoForfeited) return;
     setHasAutoForfeited(true);
@@ -255,10 +266,12 @@ export default function BattlePage() {
 
   useAntiCheat(isBattleActive && !showVsScreen, (_type, count) => setViolations(count));
 
-  // ── Redirect if idle and no battle ────────────────────────────────
+  // ── Redirect if idle and no battle (only after rehydration completes) ──────────
   useEffect(() => {
-    if (queueStatus === "idle" && !battle && !battleResult) navigate("/");
-  }, [queueStatus, battle, battleResult, navigate]);
+    if (!isRehydrating && queueStatus === "idle" && !battle && !battleResult) {
+      navigate("/");
+    }
+  }, [isRehydrating, queueStatus, battle, battleResult, navigate]);
 
   // ── Reset code on language/battle change ──────────────────────────
   useEffect(() => {

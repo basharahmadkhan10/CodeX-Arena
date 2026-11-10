@@ -84,17 +84,22 @@ const useAntiCheat = (active, onViolation) => {
   }, [active, notify]);
 
   // ── Fullscreen enforcement ────────────────────────────────────────────────
-  const requestFullscreen = useCallback(() => {
-    const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+  const hasEnteredFullscreenRef = useRef(false);
+
+  const requestFullscreen = useCallback(async () => {
+    try {
+      const el = document.documentElement;
+      if (el.requestFullscreen) await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      else if (el.mozRequestFullScreen) await el.mozRequestFullScreen();
+      hasEnteredFullscreenRef.current = true;
+    } catch (err) {
+      console.warn("[Fullscreen] Gesture required:", err.message);
+    }
   }, []);
 
   useEffect(() => {
     if (!active) return;
-
-    requestFullscreen();
 
     const isFullscreen = () =>
       !!(
@@ -103,20 +108,30 @@ const useAntiCheat = (active, onViolation) => {
         document.mozFullScreenElement
       );
 
-    const handleFullscreenChange = () => {
-      if (isFullscreen()) return;
+    if (isFullscreen()) {
+      hasEnteredFullscreenRef.current = true;
+    }
 
-      notify("fullscreen_exit");
-      toast("🔲 Please stay in fullscreen during the battle.", {
-        id: "fullscreen-warn",
-        duration: 5000,
-        style: {
-          background: "#fff3cd",
-          color: "#856404",
-          border: "2px solid #856404",
-          fontWeight: "700",
-        },
-      });
+    const handleFullscreenChange = () => {
+      if (isFullscreen()) {
+        hasEnteredFullscreenRef.current = true;
+        return;
+      }
+
+      // Only trigger violation if user had previously entered fullscreen and then exited
+      if (hasEnteredFullscreenRef.current) {
+        notify("fullscreen_exit");
+        toast("🔲 Please stay in fullscreen during the battle.", {
+          id: "fullscreen-warn",
+          duration: 5000,
+          style: {
+            background: "#fff3cd",
+            color: "#856404",
+            border: "2px solid #856404",
+            fontWeight: "700",
+          },
+        });
+      }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -134,7 +149,7 @@ const useAntiCheat = (active, onViolation) => {
         handleFullscreenChange
       );
     };
-  }, [active, notify, requestFullscreen]);
+  }, [active, notify]);
 
   return { requestFullscreen };
 };

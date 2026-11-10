@@ -163,30 +163,37 @@ class MatchmakingService {
   }
 
   async _tryMatch(mode = MODE_STANDARD) {
-    const queue = this._getQueue(mode);
+    if (this._isMatching) return;
+    this._isMatching = true;
 
-    while (queue.length >= 2) {
-      const p1 = queue.shift();
-      const p2 = queue.shift();
+    try {
+      const queue = this._getQueue(mode);
 
-      const s1 = this.io.sockets.sockets.get(p1.socketId);
-      const s2 = this.io.sockets.sockets.get(p2.socketId);
+      while (queue.length >= 2) {
+        const p1 = queue.shift();
+        const p2 = queue.shift();
 
-      if (!s1?.connected) {
-        console.log(`[Queue:${mode}] ${p1.username} socket dead — skipping`);
-        this.activeSocketMap.delete(p1.userId);
-        queue.unshift(p2);
-        continue;
+        const s1 = this.io.sockets.sockets.get(p1.socketId);
+        const s2 = this.io.sockets.sockets.get(p2.socketId);
+
+        if (!s1?.connected) {
+          console.log(`[Queue:${mode}] ${p1.username} socket dead — skipping`);
+          this.activeSocketMap.delete(p1.userId);
+          queue.unshift(p2);
+          continue;
+        }
+
+        if (!s2?.connected) {
+          console.log(`[Queue:${mode}] ${p2.username} socket dead — skipping`);
+          this.activeSocketMap.delete(p2.userId);
+          queue.unshift(p1);
+          continue;
+        }
+
+        await this._createBattle(p1, p2, mode);
       }
-
-      if (!s2?.connected) {
-        console.log(`[Queue:${mode}] ${p2.username} socket dead — skipping`);
-        this.activeSocketMap.delete(p2.userId);
-        queue.unshift(p1);
-        continue;
-      }
-
-      await this._createBattle(p1, p2, mode);
+    } finally {
+      this._isMatching = false;
     }
 
     this._broadcastQueueSize(mode);
@@ -267,11 +274,15 @@ class MatchmakingService {
       const s1 = this.io.sockets.sockets.get(player1.socketId);
       const s2 = this.io.sockets.sockets.get(player2.socketId);
       if (s1) s1.join(roomId);
-      if (s2) s2.join(roomId);
+      if (s2) s2.join(roomId);
+      try {
+        this.io.in(`user:${player1.userId}`).socketsJoin(roomId);
+        this.io.in(`user:${player2.userId}`).socketsJoin(roomId);
+      } catch (e) {}
       // Each player gets their own you/opponent perspective.
       // Do NOT emit battle:started or battle:start after this —
       // the frontend listens only to battle:matched.
-      this.io.to(player1.socketId).emit("battle:matched", {
+      this.io.to(player1.socketId).to(`user:${player1.userId}`).emit("battle:matched", {
         ...base,
         you: {
           userId:   player1.userId,
@@ -285,7 +296,7 @@ class MatchmakingService {
         },
       });
 
-      this.io.to(player2.socketId).emit("battle:matched", {
+      this.io.to(player2.socketId).to(`user:${player2.userId}`).emit("battle:matched", {
         ...base,
         you: {
           userId:   player2.userId,

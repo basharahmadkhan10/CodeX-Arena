@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { getSocket } from "../services/socket";
 import useAuthStore from "./authStore";
+import api from "../services/api";
 
 const useBattleStore = create((set, get) => ({
   // ── Matchmaking ──────────────────────────────────────────────────
@@ -42,14 +43,9 @@ const useBattleStore = create((set, get) => ({
   // ── Fetch active battle (rehydrate after page refresh) ───────────
   fetchActiveBattle: async () => {
     try {
-      const token = useAuthStore.getState().token;
-      const res   = await fetch("/api/battles/active", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data.success || !data.battle) return;
+      const res = await api.get("/battles/active");
+      const data = res.data;
+      if (!data?.success || !data.battle) return;
 
       const battle = data.battle;
       const myId   = useAuthStore.getState().user?._id?.toString();

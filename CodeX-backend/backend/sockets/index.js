@@ -49,7 +49,8 @@ const socketHandler = (io) => {
     }
 
     userSocketMap.set(userId, socket.id);
-    console.log(`✅ Connected: ${user.username} [${socket.id}]`);
+    socket.join(`user:${userId}`);
+    console.log(`✅ Connected: ${user.username} [${socket.id}] (room: user:${userId})`);
 
     matchmakingHandler(io, socket);
     battleHandler(io, socket);
