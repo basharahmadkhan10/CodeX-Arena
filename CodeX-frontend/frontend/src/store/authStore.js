@@ -1,15 +1,7 @@
 import { create } from "zustand";
 import api from "../services/api";
 import { connectSocket, disconnectSocket } from "../services/socket";
-
-function nextRank(rating, currentRank) {
-  if (rating >= 2000) return "Grandmaster";
-  if (rating >= 1800) return "Master";
-  if (rating >= 1600) return "Expert";
-  if (rating >= 1400) return "Warrior";
-  if (rating >= 1200) return "Apprentice";
-  return "Novice";
-}
+import { getRankDetails } from "../utils/ranks";
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -156,6 +148,25 @@ const useAuthStore = create((set, get) => ({
     user: s.user ? { ...s.user, ...updates } : null 
   })),
 
+  updateProfile: async (profileData) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await api.put("/users/profile", profileData);
+      if (data.user) {
+        set({ user: data.user, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
+      return { success: true, message: data.message || "Profile updated successfully" };
+    } catch (err) {
+      set({ isLoading: false });
+      return {
+        success: false,
+        message: err.response?.data?.message || "Failed to update profile",
+      };
+    }
+  },
+
   applyBattleResult: (result, myUserId) => {
     if (!result || !myUserId) return;
 
@@ -166,20 +177,19 @@ const useAuthStore = create((set, get) => ({
     const ratingChange = me.ratingChange || 0;
     const isDraw = !result.winnerId;
     const isWin = result.winnerId === myUserId;
+    const newRating = Math.max(0, (currentUser?.rating || 1000) + ratingChange);
+    const rankInfo = getRankDetails(newRating);
 
     set({
       user: currentUser
         ? {
             ...currentUser,
-            rating: Math.max(0, (currentUser.rating || 1000) + ratingChange),
+            rating: newRating,
             totalBattles: (currentUser.totalBattles || 0) + 1,
             wins: (currentUser.wins || 0) + (isWin ? 1 : 0),
             losses: (currentUser.losses || 0) + (!isWin && !isDraw ? 1 : 0),
             draws: (currentUser.draws || 0) + (isDraw ? 1 : 0),
-            rank: nextRank(
-              Math.max(0, (currentUser.rating || 1000) + ratingChange),
-              currentUser.rank,
-            ),
+            rank: rankInfo.tier,
           }
         : currentUser,
     });

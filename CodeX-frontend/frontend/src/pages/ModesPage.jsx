@@ -115,12 +115,12 @@ export default function ModesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[rgb(238,11,22)] flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[rgb(238,11,22)] dark:bg-[#090d16] flex flex-col relative overflow-hidden transition-colors">
       {/* Floating shapes */}
       {floatingShapes.map((s, i) => (
         <motion.div
           key={i}
-          className="absolute pointer-events-none"
+          className="absolute pointer-events-none opacity-40 dark:opacity-20"
           style={{
             width: s.size,
             height: s.size,
@@ -148,13 +148,13 @@ export default function ModesPage() {
       ))}
 
       {/* Navbar */}
-      <nav className="relative z-20 h-14 bg-white border-b-2 border-black flex items-center justify-between px-6 shrink-0">
+      <nav className="relative z-20 h-16 bg-white dark:bg-zinc-950 border-b-2 border-black dark:border-zinc-800 flex items-center justify-between px-6 shrink-0 transition-colors">
         <Logo size="md" />
         <button
           onClick={() => navigate("/dashboard")}
-          className="text-xs font-black uppercase tracking-widest border-2 border-black px-4 py-1.5 rounded-lg bg-white hover:bg-black hover:text-white transition-all shadow-[3px_3px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          className="text-xs font-black uppercase tracking-widest border-2 border-black dark:border-zinc-700 px-4 py-1.5 rounded-lg bg-white dark:bg-zinc-900 text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-zinc-800 transition-all shadow-[3px_3px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
         >
-          Dashboard
+          ← Dashboard
         </button>
       </nav>
 
@@ -199,11 +199,11 @@ export default function ModesPage() {
               className="relative cursor-pointer group"
             >
               <motion.div
-                className={`bg-white border-2 border-black rounded-2xl p-6 ${
+                className={`bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-800 rounded-2xl p-6 ${
                   mode.available
-                    ? "shadow-[6px_6px_0px_#000]"
+                    ? "shadow-[6px_6px_0px_#000] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.06)]"
                     : "shadow-[6px_6px_0px_#000] opacity-80"
-                } transition-shadow duration-150`}
+                } transition-all duration-150`}
                 animate={
                   hoveredId === mode.id && mode.available
                     ? { x: 3, y: 3 }
@@ -218,8 +218,8 @@ export default function ModesPage() {
                 {/* Top row */}
                 <div className="flex items-start justify-between mb-4">
                   <div
-                    className={`w-14 h-14 rounded-xl border-2 border-black flex items-center justify-center text-2xl shadow-[3px_3px_0px_#000] ${
-                      mode.available ? "bg-[rgb(238,11,22)]" : "bg-[#e0e0e0]"
+                    className={`w-14 h-14 rounded-xl border-2 border-black dark:border-zinc-700 flex items-center justify-center text-2xl shadow-[3px_3px_0px_#000] ${
+                      mode.available ? "bg-[rgb(238,11,22)]" : "bg-[#e0e0e0] dark:bg-zinc-800"
                     }`}
                   >
                     {mode.icon}
@@ -246,29 +246,29 @@ export default function ModesPage() {
 
                 {/* Title */}
                 <div className="mb-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black/40">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black/40 dark:text-zinc-500">
                     {mode.subtitle}
                   </p>
-                  <h2 className="text-2xl font-black text-black leading-tight">
+                  <h2 className="text-2xl font-black text-black dark:text-white leading-tight">
                     {mode.title}
                   </h2>
                 </div>
 
                 {/* Description */}
-                <p className="text-sm text-black/60 font-medium mb-5 leading-relaxed">
+                <p className="text-sm text-black/60 dark:text-zinc-400 font-medium mb-5 leading-relaxed">
                   {mode.description}
                 </p>
 
                 {/* Footer */}
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-black bg-[#f0fafa] border-2 border-black px-3 py-1.5 rounded-lg shadow-[2px_2px_0px_#000]">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-black bg-[#f0fafa] dark:bg-zinc-800 text-black dark:text-white border-2 border-black dark:border-zinc-700 px-3 py-1.5 rounded-lg shadow-[2px_2px_0px_#000]">
                     👥 {mode.players}
                   </span>
                   <button
-                    className={`text-xs font-black uppercase tracking-widest px-4 py-2 rounded-lg border-2 border-black transition-all ${
+                    className={`text-xs font-black uppercase tracking-widest px-4 py-2 rounded-lg border-2 border-black dark:border-zinc-700 transition-all ${
                       mode.available
                         ? "bg-[rgb(238,11,22)] text-white shadow-[3px_3px_0px_#000] group-hover:shadow-[1px_1px_0px_#000] group-hover:translate-x-[2px] group-hover:translate-y-[2px]"
-                        : "bg-[#e0e0e0] text-black/40 cursor-not-allowed shadow-[3px_3px_0px_#000]"
+                        : "bg-[#e0e0e0] dark:bg-zinc-800 text-black/40 dark:text-zinc-500 cursor-not-allowed shadow-[3px_3px_0px_#000]"
                     }`}
                   >
                     {mode.available ? "Enter →" : "Locked 🔒"}

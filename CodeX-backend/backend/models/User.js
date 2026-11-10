@@ -49,14 +49,17 @@ const userSchema = new mongoose.Schema(
     rank: {
       type: String,
       enum: [
-        "Novice",
-        "Apprentice",
-        "Warrior",
-        "Expert",
-        "Master",
-        "Grandmaster",
+        "Initiate I", "Initiate II", "Initiate III",
+        "Striker I", "Striker II", "Striker III",
+        "Gladiator I", "Gladiator II", "Gladiator III",
+        "Warlord I", "Warlord II", "Warlord III",
+        "Vanguard I", "Vanguard II", "Vanguard III",
+        "Overlord I", "Overlord II", "Overlord III",
+        "Sovereign",
+        "Apex Immortal",
+        "Novice", "Apprentice", "Warrior", "Expert", "Master", "Grandmaster"
       ],
-      default: "Novice",
+      default: "Initiate I",
     },
     currentBattleId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -85,12 +88,27 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 };
 
 userSchema.methods.updateRank = function () {
-  if (this.rating < 1200) this.rank = "Novice";
-  else if (this.rating < 1400) this.rank = "Apprentice";
-  else if (this.rating < 1600) this.rank = "Warrior";
-  else if (this.rating < 1800) this.rank = "Expert";
-  else if (this.rating < 2000) this.rank = "Master";
-  else this.rank = "Grandmaster";
+  const r = this.rating;
+  if (r < 300)       this.rank = "Initiate I";
+  else if (r < 550)  this.rank = "Initiate II";
+  else if (r < 800)  this.rank = "Initiate III";
+  else if (r < 1050) this.rank = "Striker I";
+  else if (r < 1300) this.rank = "Striker II";
+  else if (r < 1500) this.rank = "Striker III";
+  else if (r < 1750) this.rank = "Gladiator I";
+  else if (r < 2000) this.rank = "Gladiator II";
+  else if (r < 2200) this.rank = "Gladiator III";
+  else if (r < 2450) this.rank = "Warlord I";
+  else if (r < 2700) this.rank = "Warlord II";
+  else if (r < 2900) this.rank = "Warlord III";
+  else if (r < 3150) this.rank = "Vanguard I";
+  else if (r < 3400) this.rank = "Vanguard II";
+  else if (r < 3600) this.rank = "Vanguard III";
+  else if (r < 3850) this.rank = "Overlord I";
+  else if (r < 4100) this.rank = "Overlord II";
+  else if (r < 4300) this.rank = "Overlord III";
+  else if (r < 4900) this.rank = "Sovereign";
+  else               this.rank = "Apex Immortal";
 };
 
 userSchema.methods.toSafeObject = function () {

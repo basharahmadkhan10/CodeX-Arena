@@ -176,6 +176,12 @@ export default function App() {
 
   useEffect(() => {
     init();
+    const savedTheme = localStorage.getItem("codex_theme");
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
   }, [init]);
 
   if (isLoading && !isInitialized) {

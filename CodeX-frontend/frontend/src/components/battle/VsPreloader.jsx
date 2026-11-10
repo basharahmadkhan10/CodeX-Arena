@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords } from "lucide-react";
+import { getRankDetails } from "../../utils/ranks";
 
 export default function VsPreloader({ you, opponent, mode, onComplete }) {
   useEffect(() => {
@@ -9,6 +10,9 @@ export default function VsPreloader({ you, opponent, mode, onComplete }) {
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  const youRank = getRankDetails(you?.rating || 1000);
+  const oppRank = getRankDetails(opponent?.rating || 1000);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgb(238,11,22)] overflow-hidden">
@@ -38,8 +42,10 @@ export default function VsPreloader({ you, opponent, mode, onComplete }) {
           <div className="bg-white border-4 border-black rounded-3xl p-6 shadow-[12px_12px_0px_rgba(0,0,0,0.5)] transform -rotate-3">
             <p className="text-sm font-black text-black/50 uppercase tracking-widest mb-1">Challenger</p>
             <h2 className="text-4xl font-black text-black break-words max-w-[250px] leading-tight">{you?.username || "You"}</h2>
-            <div className="mt-3 inline-flex items-center gap-2 bg-[rgb(238,11,22)] text-white px-3 py-1.5 rounded-lg border-2 border-black font-black text-sm">
-              <span>⭐ {you?.rating || 1000}</span>
+            <div className="mt-3 inline-flex items-center gap-2 bg-[rgb(238,11,22)] text-white px-3 py-1.5 rounded-lg border-2 border-black font-black text-xs uppercase tracking-wider">
+              <span>{youRank.icon}</span>
+              <span>{youRank.tier}</span>
+              <span className="opacity-80">· {you?.rating || 1000} RP</span>
             </div>
           </div>
         </motion.div>
@@ -84,8 +90,10 @@ export default function VsPreloader({ you, opponent, mode, onComplete }) {
           <div className="bg-black border-4 border-white rounded-3xl p-6 shadow-[12px_12px_0px_rgba(0,0,0,0.5)] transform rotate-3">
             <p className="text-sm font-black text-white/50 uppercase tracking-widest mb-1">Opponent</p>
             <h2 className="text-4xl font-black text-white break-words max-w-[250px] leading-tight">{opponent?.username || "Opponent"}</h2>
-            <div className="mt-3 inline-flex items-center gap-2 bg-white text-black px-3 py-1.5 rounded-lg border-2 border-black font-black text-sm">
-              <span>⭐ {opponent?.rating || 1000}</span>
+            <div className="mt-3 inline-flex items-center gap-2 bg-white text-black px-3 py-1.5 rounded-lg border-2 border-black font-black text-xs uppercase tracking-wider">
+              <span>{oppRank.icon}</span>
+              <span>{oppRank.tier}</span>
+              <span className="opacity-70">· {opponent?.rating || 1000} RP</span>
             </div>
           </div>
         </motion.div>
