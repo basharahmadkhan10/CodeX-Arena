@@ -5,14 +5,11 @@ import {
   X,
   Lock,
   CheckCircle2,
-  Sparkles,
   Flame,
-  ChevronRight,
-  Shield,
   Zap,
-  Target,
 } from "lucide-react";
 import { RANKS_LADDER, getRankDetails } from "../utils/ranks";
+import RankBadge from "./RankBadge";
 
 export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }) {
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -50,14 +47,14 @@ export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }
           <div className="p-6 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 dark:from-zinc-900 dark:via-red-950 dark:to-zinc-900 text-white border-b-4 border-black dark:border-zinc-800 flex items-center justify-between shrink-0 shadow-[0_4px_0px_#000]">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-black/30 border-2 border-white/40 flex items-center justify-center text-2xl shadow-inner">
-                🏆
+                <Trophy size={26} className="text-amber-300" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-black uppercase tracking-widest text-amber-300">
                     Competitive Ladder
                   </span>
-                  <span className="bg-black/40 text-[10px] font-black px-2 py-0.5 rounded-full border border-white/20">
+                  <span className="bg-black/40 text-[10px] font-black px-2 py-0.5 rounded-full border border-white/20 font-mono">
                     0 - 5000 RP
                   </span>
                 </div>
@@ -82,14 +79,14 @@ export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }
                 <span className="text-[11px] font-black uppercase tracking-wider text-black/50 dark:text-zinc-400">
                   Your Current Standing
                 </span>
-                <div className="flex items-center gap-2.5 mt-1">
-                  <span className="text-3xl">{rankInfo.icon}</span>
+                <div className="flex items-center gap-3 mt-1.5">
+                  <RankBadge rating={currentRating} size="lg" showSub={true} />
                   <div>
                     <h3 className="text-2xl font-black tracking-tight text-black dark:text-white">
                       {rankInfo.tier}
                     </h3>
-                    <p className="text-xs font-bold text-red-600 dark:text-red-400">
-                      Tier {rankInfo.sub} • {rankInfo.minRp} - {rankInfo.maxRp} RP
+                    <p className="text-xs font-bold text-red-600 dark:text-red-400 font-mono">
+                      Division {rankInfo.major} • {rankInfo.minRp} - {rankInfo.maxRp} RP
                     </p>
                   </div>
                 </div>
@@ -101,33 +98,44 @@ export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }
                 </span>
                 <span className="text-xs font-bold text-black/50 dark:text-zinc-400 ml-1">RP</span>
                 {rankInfo.nextRank && (
-                  <p className="text-[11px] font-black text-amber-600 dark:text-amber-400 mt-1">
+                  <p className="text-[11px] font-black text-red-600 dark:text-red-400 mt-1 font-mono">
                     +{rankInfo.rpNeeded} RP to {rankInfo.nextRank.tier}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Progress bar to next rank */}
+            {/* Industrial Level Bar */}
             {rankInfo.nextRank ? (
-              <div className="mt-4">
-                <div className="flex justify-between text-xs font-bold text-black/60 dark:text-zinc-400 mb-1.5">
+              <div className="mt-4 space-y-1.5">
+                <div className="flex justify-between text-xs font-bold text-black/60 dark:text-zinc-400 font-mono">
                   <span>Progression to {rankInfo.nextRank.tier}</span>
-                  <span>{rankInfo.progressPct}%</span>
+                  <span className="font-black text-red-600 dark:text-red-400">{rankInfo.progressPct}%</span>
                 </div>
-                <div className="w-full h-3.5 bg-black/10 dark:bg-zinc-800 rounded-full border-2 border-black dark:border-zinc-700 overflow-hidden p-0.5">
+                <div className="w-full h-4 bg-black/90 dark:bg-black rounded-lg border-2 border-black dark:border-zinc-700 overflow-hidden relative shadow-[2px_2px_0px_#000] p-0.5">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${rankInfo.progressPct}%` }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="h-full bg-gradient-to-r from-red-500 via-amber-500 to-yellow-400 rounded-full shadow-sm"
+                    className="h-full rounded relative overflow-hidden"
+                    style={{
+                      backgroundColor: "#ee0b16",
+                      backgroundImage:
+                        "linear-gradient(135deg, rgba(255,255,255,0.25) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.25) 75%, transparent 75%, transparent)",
+                      backgroundSize: "14px 14px",
+                    }}
                   />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-[9px] font-black tracking-widest text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] font-mono">
+                      {rankInfo.progressPct}% · {currentRating} / {rankInfo.maxRp + 1} RP
+                    </span>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="mt-4 p-2.5 bg-amber-400/20 border-2 border-amber-500 rounded-xl text-center">
-                <span className="text-xs font-black text-amber-700 dark:text-amber-300 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                  ⚡ HIGHEST RANK REACHED — YOU ARE GOD TIER ⚡
+              <div className="mt-4 p-3 bg-amber-400/20 border-2 border-amber-500 rounded-xl text-center">
+                <span className="text-xs font-black text-amber-700 dark:text-amber-300 uppercase tracking-widest flex items-center justify-center gap-1.5 font-mono">
+                  ⚡ HIGHEST RANK REACHED — GOD TIER APEX IMMORTAL ⚡
                 </span>
               </div>
             )}
@@ -177,27 +185,19 @@ export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }
                 >
                   {/* Current rank ribbon */}
                   {isCurrent && (
-                    <div className="absolute -top-3 right-4 bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] flex items-center gap-1">
+                    <div className="absolute -top-3 right-4 bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] flex items-center gap-1 font-mono">
                       <Flame size={12} className="fill-black" /> Current Rank
                     </div>
                   )}
 
                   <div className="flex items-start gap-4">
-                    {/* Rank Badge / Icon Box */}
-                    <div
-                      className={`w-14 h-14 rounded-2xl border-2 border-black flex flex-col items-center justify-center shrink-0 shadow-[3px_3px_0px_#000] ${
-                        isApex
-                          ? "bg-gradient-to-tr from-amber-400 via-rose-500 to-indigo-600 animate-pulse text-white"
-                          : isUnlocked
-                            ? "bg-white dark:bg-zinc-800 text-black dark:text-white"
-                            : "bg-zinc-200 dark:bg-zinc-800 text-zinc-400"
-                      }`}
-                    >
-                      <span className="text-2xl leading-none">{item.icon}</span>
-                      <span className="text-[10px] font-black tracking-wider uppercase mt-1">
-                        {item.sub}
-                      </span>
-                    </div>
+                    {/* Rank Badge Component */}
+                    <RankBadge
+                      tier={item.tier}
+                      rating={item.minRp}
+                      size="lg"
+                      showSub={true}
+                    />
 
                     {/* Rank Details */}
                     <div className="flex-1 min-w-0">
@@ -215,7 +215,7 @@ export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }
                             {item.tier}
                           </h4>
                           {isApex && (
-                            <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider font-mono">
                               GOD TIER
                             </span>
                           )}
@@ -239,7 +239,7 @@ export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }
                               <CheckCircle2 size={13} /> Unlocked
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1 text-[11px] font-black text-zinc-500 dark:text-zinc-500">
+                            <span className="flex items-center gap-1 text-[11px] font-black text-zinc-500 dark:text-zinc-500 font-mono">
                               <Lock size={12} /> Locked ({item.minRp - currentRating} RP needed)
                             </span>
                           )}
@@ -258,7 +258,7 @@ export default function RankRoadDrawer({ isOpen, onClose, currentRating = 1000 }
 
           {/* Footer */}
           <div className="p-4 bg-white dark:bg-zinc-950 border-t-2 border-black dark:border-zinc-800 flex items-center justify-between text-xs font-bold text-black/60 dark:text-zinc-400">
-            <span>Win competitive battles to climb the ladder</span>
+            <span>Win competitive duels to ascend the ladder</span>
             <button
               onClick={onClose}
               className="bg-black hover:bg-black/80 text-white dark:bg-white dark:text-black font-black px-4 py-2 rounded-xl text-xs uppercase tracking-wider border-2 border-black dark:border-white shadow-[2px_2px_0px_#000]"

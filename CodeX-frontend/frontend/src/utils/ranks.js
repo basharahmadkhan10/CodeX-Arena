@@ -1,5 +1,5 @@
 // CodeX Arena 0 - 5000 RP Competitive Ranking Ladder
-// Inspired by Valorant (Sub-tiers I, II, III), Codeforces (Colors), and Clash of Clans (Trophy Road)
+// Designed with authentic esports division crests, sub-tiers (I, II, III), and high-prestige lore.
 
 export const RANKS_LADDER = [
   {
@@ -14,7 +14,8 @@ export const RANKS_LADDER = [
     borderClass: "border-zinc-500",
     textClass: "text-zinc-300",
     lore: "Fresh recruit stepping into the brutal arena. Learning basic syntax and brute-force.",
-    icon: "🪨",
+    emblem: "/ranks/initiate.png",
+    icon: "I",
   },
   {
     tier: "Initiate II",
@@ -28,7 +29,8 @@ export const RANKS_LADDER = [
     borderClass: "border-zinc-400",
     textClass: "text-zinc-200",
     lore: "Understanding loops and string manipulations under light pressure.",
-    icon: "🪨",
+    emblem: "/ranks/initiate.png",
+    icon: "II",
   },
   {
     tier: "Initiate III",
@@ -42,7 +44,8 @@ export const RANKS_LADDER = [
     borderClass: "border-zinc-300",
     textClass: "text-zinc-100",
     lore: "Overcoming rookie errors. Ready to break into the competitive ranks.",
-    icon: "⚔️",
+    emblem: "/ranks/initiate.png",
+    icon: "III",
   },
   {
     tier: "Striker I",
@@ -56,7 +59,8 @@ export const RANKS_LADDER = [
     borderClass: "border-amber-700",
     textClass: "text-amber-400",
     lore: "Speed matters. Fast hands on basic array logic and math formulas.",
-    icon: "🥉",
+    emblem: "/ranks/striker.png",
+    icon: "I",
   },
   {
     tier: "Striker II",
@@ -70,7 +74,8 @@ export const RANKS_LADDER = [
     borderClass: "border-amber-600",
     textClass: "text-amber-300",
     lore: "Instinctive edge cases handling. Solving simple test cases with low latency.",
-    icon: "🥉",
+    emblem: "/ranks/striker.png",
+    icon: "II",
   },
   {
     tier: "Striker III",
@@ -84,7 +89,8 @@ export const RANKS_LADDER = [
     borderClass: "border-amber-500",
     textClass: "text-amber-200",
     lore: "Gates of the gladiators. Consistent under duel countdown timers.",
-    icon: "🥉",
+    emblem: "/ranks/striker.png",
+    icon: "III",
   },
   {
     tier: "Gladiator I",
@@ -98,7 +104,8 @@ export const RANKS_LADDER = [
     borderClass: "border-cyan-500",
     textClass: "text-cyan-300",
     lore: "Two-pointers, Sliding Window, and Hash Maps are second nature.",
-    icon: "🥈",
+    emblem: "/ranks/gladiator.png",
+    icon: "I",
   },
   {
     tier: "Gladiator II",
@@ -112,7 +119,8 @@ export const RANKS_LADDER = [
     borderClass: "border-cyan-400",
     textClass: "text-cyan-200",
     lore: "Arena veteran. Unfazed by submission status updates from opponents.",
-    icon: "🥈",
+    emblem: "/ranks/gladiator.png",
+    icon: "II",
   },
   {
     tier: "Gladiator III",
@@ -126,7 +134,8 @@ export const RANKS_LADDER = [
     borderClass: "border-cyan-300",
     textClass: "text-cyan-100",
     lore: "Approaching Warlord status. Capable of sub-minute algorithm drafting.",
-    icon: "🥈",
+    emblem: "/ranks/gladiator.png",
+    icon: "III",
   },
   {
     tier: "Warlord I",
@@ -140,7 +149,8 @@ export const RANKS_LADDER = [
     borderClass: "border-yellow-500",
     textClass: "text-yellow-400",
     lore: "Recursion, Tree traversals, and Binary Search executed cleanly.",
-    icon: "🥇",
+    emblem: "/ranks/warlord.png",
+    icon: "I",
   },
   {
     tier: "Warlord II",
@@ -154,7 +164,8 @@ export const RANKS_LADDER = [
     borderClass: "border-yellow-400",
     textClass: "text-yellow-300",
     lore: "Feared on the ladder. Multi-testcase traps rarely deceive them.",
-    icon: "🥇",
+    emblem: "/ranks/warlord.png",
+    icon: "II",
   },
   {
     tier: "Warlord III",
@@ -168,7 +179,8 @@ export const RANKS_LADDER = [
     borderClass: "border-yellow-300",
     textClass: "text-yellow-200",
     lore: "Apex warlord. Commands algorithms with ruthless speed.",
-    icon: "🥇",
+    emblem: "/ranks/warlord.png",
+    icon: "III",
   },
   {
     tier: "Vanguard I",
@@ -182,7 +194,8 @@ export const RANKS_LADDER = [
     borderClass: "border-sky-400",
     textClass: "text-sky-300",
     lore: "Top 10% worldwide. Graph BFS/DFS, Heaps, and Greedy strategies.",
-    icon: "💠",
+    emblem: "/ranks/vanguard.png",
+    icon: "I",
   },
   {
     tier: "Vanguard II",
@@ -195,8 +208,9 @@ export const RANKS_LADDER = [
     bgGradient: "from-emerald-700 to-slate-950",
     borderClass: "border-emerald-400",
     textClass: "text-emerald-300",
-    lore: "Flawless code architecture. High-speed bug identification in debugging duels.",
-    icon: "💠",
+    lore: "Flawless code architecture. High-speed bug identification in duels.",
+    emblem: "/ranks/vanguard.png",
+    icon: "II",
   },
   {
     tier: "Vanguard III",
@@ -210,7 +224,8 @@ export const RANKS_LADDER = [
     borderClass: "border-blue-400",
     textClass: "text-blue-300",
     lore: "Threshold to Overlord. Deep algorithmic memory and zero panic.",
-    icon: "💠",
+    emblem: "/ranks/vanguard.png",
+    icon: "III",
   },
   {
     tier: "Overlord I",
@@ -224,7 +239,8 @@ export const RANKS_LADDER = [
     borderClass: "border-purple-500",
     textClass: "text-purple-300",
     lore: "Top 3% elite. Dynamic Programming, Memoization, and bitwise acrobatics.",
-    icon: "💎",
+    emblem: "/ranks/overlord.png",
+    icon: "I",
   },
   {
     tier: "Overlord II",
@@ -238,7 +254,8 @@ export const RANKS_LADDER = [
     borderClass: "border-purple-400",
     textClass: "text-purple-200",
     lore: "Formidable duelists. Crushing complex constraints in single submissions.",
-    icon: "💎",
+    emblem: "/ranks/overlord.png",
+    icon: "II",
   },
   {
     tier: "Overlord III",
@@ -252,7 +269,8 @@ export const RANKS_LADDER = [
     borderClass: "border-pink-500",
     textClass: "text-pink-300",
     lore: "Grandmaster class. Only sovereigns stand above them on the world ladder.",
-    icon: "💎",
+    emblem: "/ranks/overlord.png",
+    icon: "III",
   },
   {
     tier: "Sovereign",
@@ -266,7 +284,8 @@ export const RANKS_LADDER = [
     borderClass: "border-rose-500",
     textClass: "text-rose-300",
     lore: "Top 100 globally. Algorithms bend to their intuition. Unmatched consistency.",
-    icon: "👑",
+    emblem: "/ranks/sovereign.png",
+    icon: "APEX",
   },
   {
     tier: "Apex Immortal",
@@ -280,7 +299,8 @@ export const RANKS_LADDER = [
     borderClass: "border-amber-300 animate-pulse",
     textClass: "text-amber-200 font-extrabold",
     lore: "GOD TIER (Top 0.1%). The undisputed monarchs of CodeX Arena. Eternal glory.",
-    icon: "⚡",
+    emblem: "/ranks/apex.png",
+    icon: "LEGEND",
   },
 ];
 

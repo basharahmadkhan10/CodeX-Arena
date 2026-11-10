@@ -18,6 +18,7 @@ import {
 import toast from "react-hot-toast";
 import useAuthStore from "../store/authStore";
 import { getRankDetails } from "../utils/ranks";
+import RankBadge from "./RankBadge";
 
 const PRESET_AVATARS = [
   {
@@ -256,12 +257,12 @@ export default function SettingsModal({ isOpen, onClose }) {
                       )}
                     </div>
                     {/* Rank Badge Indicator */}
-                    <div
-                      className="absolute -bottom-2 -right-2 w-7 h-7 rounded-lg border-2 border-black flex items-center justify-center text-sm shadow-[2px_2px_0px_#000] bg-white dark:bg-zinc-800"
-                      title={rankInfo.tier}
-                    >
-                      {rankInfo.icon}
-                    </div>
+                    <RankBadge
+                      rating={user?.rating || 1000}
+                      size="xs"
+                      showSub={true}
+                      className="absolute -bottom-2 -right-2"
+                    />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -571,3 +572,4 @@ export default function SettingsModal({ isOpen, onClose }) {
     </AnimatePresence>
   );
 }
+

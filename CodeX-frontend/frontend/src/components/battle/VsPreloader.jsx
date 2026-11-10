@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords } from "lucide-react";
 import { getRankDetails } from "../../utils/ranks";
+import RankBadge from "../RankBadge";
 
 export default function VsPreloader({ you, opponent, mode, onComplete }) {
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function VsPreloader({ you, opponent, mode, onComplete }) {
             <p className="text-sm font-black text-black/50 uppercase tracking-widest mb-1">Challenger</p>
             <h2 className="text-4xl font-black text-black break-words max-w-[250px] leading-tight">{you?.username || "You"}</h2>
             <div className="mt-3 inline-flex items-center gap-2 bg-[rgb(238,11,22)] text-white px-3 py-1.5 rounded-lg border-2 border-black font-black text-xs uppercase tracking-wider">
-              <span>{youRank.icon}</span>
+              <RankBadge rating={you?.rating || 1000} size="xs" showSub={false} />
               <span>{youRank.tier}</span>
               <span className="opacity-80">· {you?.rating || 1000} RP</span>
             </div>
@@ -91,7 +92,7 @@ export default function VsPreloader({ you, opponent, mode, onComplete }) {
             <p className="text-sm font-black text-white/50 uppercase tracking-widest mb-1">Opponent</p>
             <h2 className="text-4xl font-black text-white break-words max-w-[250px] leading-tight">{opponent?.username || "Opponent"}</h2>
             <div className="mt-3 inline-flex items-center gap-2 bg-white text-black px-3 py-1.5 rounded-lg border-2 border-black font-black text-xs uppercase tracking-wider">
-              <span>{oppRank.icon}</span>
+              <RankBadge rating={opponent?.rating || 1000} size="xs" showSub={false} />
               <span>{oppRank.tier}</span>
               <span className="opacity-70">· {opponent?.rating || 1000} RP</span>
             </div>

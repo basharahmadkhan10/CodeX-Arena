@@ -20,6 +20,7 @@ import useAuthStore from "../store/authStore";
 import useBattleStore from "../store/battleStore";
 import api from "../services/api";
 import Logo from "../components/Logo";
+import RankBadge from "../components/RankBadge";
 import RankRoadDrawer from "../components/RankRoadDrawer";
 import SettingsModal from "../components/SettingsModal";
 import { getRankDetails } from "../utils/ranks";
@@ -80,10 +81,10 @@ export default function DashboardPage() {
           {/* Rank Badge / Trophy Road trigger */}
           <button
             onClick={() => setIsRankRoadOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_rgba(255,255,255,0.08)] hover:scale-102 transition-all group"
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border-2 border-black dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_rgba(255,255,255,0.08)] hover:scale-102 transition-all group"
             title="Open Trophy Road & Ranks"
           >
-            <span className="text-xl leading-none">{rankInfo.icon}</span>
+            <RankBadge rating={user?.rating || 1000} size="sm" showSub={true} />
             <div className="text-left hidden sm:block">
               <div className="flex items-center gap-1.5 leading-none">
                 <span className="text-xs font-black uppercase text-black dark:text-white">
@@ -171,12 +172,12 @@ export default function DashboardPage() {
                       </span>
                     )}
                   </div>
-                  <div
-                    className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-md border-2 border-black flex items-center justify-center text-xs shadow-[2px_2px_0px_#000] bg-white dark:bg-zinc-800"
-                    title={rankInfo.tier}
-                  >
-                    {rankInfo.icon}
-                  </div>
+                  <RankBadge
+                    rating={user?.rating || 1000}
+                    size="xs"
+                    showSub={true}
+                    className="absolute -bottom-2 -right-2"
+                  />
                 </div>
 
                 <div>
@@ -198,9 +199,9 @@ export default function DashboardPage() {
               {/* Clickable Rank Badge */}
               <button
                 onClick={() => setIsRankRoadOpen(true)}
-                className="flex items-center gap-3 px-4 py-2 rounded-xl border-2 border-black dark:border-zinc-700 bg-[#f0fafa] dark:bg-zinc-800 shadow-[3px_3px_0px_#000] hover:scale-102 transition-all text-left"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 border-black dark:border-zinc-700 bg-[#f0fafa] dark:bg-zinc-800 shadow-[3px_3px_0px_#000] hover:scale-102 transition-all text-left"
               >
-                <span className="text-3xl">{rankInfo.icon}</span>
+                <RankBadge rating={user?.rating || 1000} size="md" showSub={true} />
                 <div>
                   <p className="text-xs font-black uppercase tracking-wider text-black dark:text-white">
                     {rankInfo.tier}
@@ -213,38 +214,49 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Rank Lore & Progress Bar */}
+            {/* Rank Lore & Professional Esports Level Bar */}
             <div className="px-6 py-4 bg-[#f8fefe] dark:bg-zinc-900/40 border-b-2 border-black/10 dark:border-zinc-800">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
                 <p className="text-xs font-bold text-black/70 dark:text-zinc-300 italic">
                   "{rankInfo.lore}"
                 </p>
                 {rankInfo.nextRank && (
-                  <span className="text-xs font-black text-amber-600 dark:text-amber-400 shrink-0">
+                  <span className="text-xs font-black text-red-600 dark:text-red-400 shrink-0 font-mono">
                     +{rankInfo.rpNeeded} RP to {rankInfo.nextRank.tier}
                   </span>
                 )}
               </div>
 
               {rankInfo.nextRank ? (
-                <div className="space-y-1">
-                  <div className="w-full h-3 bg-black/10 dark:bg-zinc-800 rounded-full border border-black dark:border-zinc-700 overflow-hidden p-0.5">
+                <div className="space-y-1.5">
+                  {/* Clean Esports Segmented Level Bar */}
+                  <div className="w-full h-4 bg-black/90 dark:bg-black rounded-lg border-2 border-black dark:border-zinc-700 overflow-hidden relative shadow-[2px_2px_0px_#000] dark:shadow-none p-0.5">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${rankInfo.progressPct}%` }}
                       transition={{ duration: 0.8, ease: "easeOut" }}
-                      className="h-full bg-gradient-to-r from-red-500 via-amber-500 to-yellow-400 rounded-full shadow-sm"
+                      className="h-full rounded relative overflow-hidden transition-all duration-300"
+                      style={{
+                        backgroundColor: "#ee0b16",
+                        backgroundImage:
+                          "linear-gradient(135deg, rgba(255,255,255,0.25) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.25) 75%, transparent 75%, transparent)",
+                        backgroundSize: "14px 14px",
+                      }}
                     />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-[9px] font-black tracking-widest text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] font-mono">
+                        {rankInfo.progressPct}% · {user?.rating || 1000} / {rankInfo.maxRp + 1} RP
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-black/40 dark:text-zinc-500">
-                    <span>{rankInfo.minRp} RP</span>
-                    <span>{rankInfo.progressPct}% of tier completed</span>
-                    <span>{rankInfo.maxRp + 1} RP</span>
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-black/50 dark:text-zinc-400 font-mono">
+                    <span>{rankInfo.minRp} RP FLOOR</span>
+                    <span>NEXT: {rankInfo.nextRank.tier} (+{rankInfo.rpNeeded} RP)</span>
                   </div>
                 </div>
               ) : (
-                <div className="text-[11px] font-black text-amber-500 uppercase tracking-wider flex items-center gap-1">
-                  <Flame size={13} /> You are at the absolute peak of the competitive ladder!
+                <div className="text-[11px] font-black text-amber-500 uppercase tracking-wider flex items-center gap-1 font-mono">
+                  <Flame size={13} /> HIGHEST RANK REACHED — GOD TIER APEX IMMORTAL
                 </div>
               )}
             </div>
@@ -276,9 +288,7 @@ export default function DashboardPage() {
                     key={label}
                     className="bg-[#f0fafa] dark:bg-zinc-800/80 border-2 border-black dark:border-zinc-700 rounded-xl p-3 sm:p-4 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_rgba(255,255,255,0.06)]"
                   >
-                    <div
-                      className="w-8 h-8 rounded-lg border-2 border-black dark:border-zinc-700 flex items-center justify-center mb-2 shadow-[2px_2px_0px_#000] bg-white dark:bg-zinc-900"
-                    >
+                    <div className="w-8 h-8 rounded-lg border-2 border-black dark:border-zinc-700 flex items-center justify-center mb-2 shadow-[2px_2px_0px_#000] bg-white dark:bg-zinc-900">
                       <Icon size={16} className="text-black dark:text-white" />
                     </div>
                     <p className="text-xl sm:text-2xl font-black text-black dark:text-white">
@@ -498,15 +508,15 @@ export default function DashboardPage() {
                           </span>
                         )}
                       </p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <span className="text-xs">{uRank.icon}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <RankBadge rating={u.rating} size="xs" showSub={false} />
                         <span className="text-[11px] font-bold text-black/60 dark:text-zinc-400 truncate">
                           {uRank.tier}
                         </span>
                       </div>
                     </div>
 
-                    <span className="text-xs font-black text-black dark:text-white bg-[#f0fafa] dark:bg-zinc-800 border-2 border-black dark:border-zinc-700 px-2 py-0.5 rounded-lg shadow-[2px_2px_0px_#000] shrink-0">
+                    <span className="text-xs font-black text-black dark:text-white bg-[#f0fafa] dark:bg-zinc-800 border-2 border-black dark:border-zinc-700 px-2 py-0.5 rounded-lg shadow-[2px_2px_0px_#000] shrink-0 font-mono">
                       {u.rating} RP
                     </span>
                   </div>
