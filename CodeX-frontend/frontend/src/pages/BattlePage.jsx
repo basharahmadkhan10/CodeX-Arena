@@ -250,7 +250,7 @@ export default function BattlePage() {
     if (battle?.battleId) {
       setTimeout(() => forfeit(battle.battleId, reason), 800);
     } else {
-      setTimeout(() => { reset(); navigate("/"); }, 3000);
+      setTimeout(() => { reset(); navigate("/dashboard"); }, 3000);
     }
   }, [hasAutoForfeited, battle?.battleId, forfeit, reset, navigate]);
 
@@ -269,7 +269,7 @@ export default function BattlePage() {
   // ── Redirect if idle and no battle (only after rehydration completes) ──────────
   useEffect(() => {
     if (!isRehydrating && queueStatus === "idle" && !battle && !battleResult) {
-      navigate("/");
+      navigate("/dashboard");
     }
   }, [isRehydrating, queueStatus, battle, battleResult, navigate]);
 
@@ -298,7 +298,7 @@ export default function BattlePage() {
   useEffect(() => {
     if (!battleResult) return;
     if (document.fullscreenElement) document.exitFullscreen().catch(console.warn);
-    const timer = setTimeout(() => { reset(); navigate("/"); }, 8000);
+    const timer = setTimeout(() => { reset(); navigate("/dashboard"); }, 8000);
     return () => clearTimeout(timer);
   }, [battleResult, reset, navigate]);
 
@@ -468,7 +468,7 @@ export default function BattlePage() {
   const handleCancel = () => {
     if (document.fullscreenElement) document.exitFullscreen().catch(console.warn);
     leaveQueue();
-    navigate("/");
+    navigate("/dashboard");
   };
 
   const handleSubmit = () => {
@@ -536,7 +536,7 @@ export default function BattlePage() {
         <BattleResultModal
           result={battleResult}
           you={null}
-          onClose={() => { reset(); navigate("/"); }}
+          onClose={() => { reset(); navigate("/dashboard"); }}
         />
       </AnimatePresence>
     );
@@ -888,7 +888,7 @@ export default function BattlePage() {
             onClose={() => {
               if (document.fullscreenElement) document.exitFullscreen().catch(console.warn);
               reset();
-              navigate("/");
+              navigate("/dashboard");
             }}
           />
         )}

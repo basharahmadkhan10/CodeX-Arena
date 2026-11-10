@@ -419,7 +419,7 @@ export default function RoomBattlePage() {
   const handleLeave = () => {
     if (roomCode) leaveRoom(roomCode);
     else resetRoom();
-    navigate("/battle");
+    navigate("/dashboard");
   };
 
   // ── Lobby (waiting room) ──
@@ -440,7 +440,7 @@ export default function RoomBattlePage() {
     <JoinCreateScreen
       onCreateRoom={createRoom}
       onJoinRoom={joinRoom}
-      onBack={() => navigate("/battle")}
+      onBack={() => navigate("/modes")}
       error={roomError}
     />
   );

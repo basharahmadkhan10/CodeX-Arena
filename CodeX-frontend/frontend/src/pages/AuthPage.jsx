@@ -54,7 +54,7 @@ export default function AuthPage() {
             const result = await googleLogin(response.credential);
             if (result.success) {
               toast.success(mode === "login" ? "Welcome back!" : "Account created!");
-              navigate("/");
+              navigate("/dashboard");
             } else {
               toast.error(result.message);
             }
@@ -88,7 +88,7 @@ export default function AuthPage() {
       const result = await login(form.email, form.password);
       if (result.success) {
         toast.success("Welcome back!");
-        navigate("/");
+        navigate("/dashboard");
       } else toast.error(result.message);
     } else if (mode === "register") {
       const result = await register(form.username, form.email, form.password);
@@ -100,7 +100,7 @@ export default function AuthPage() {
       const result = await verifyOtp(form.email, otp);
       if (result.success) {
         toast.success("Account created successfully!");
-        navigate("/");
+        navigate("/dashboard");
       } else toast.error(result.message);
     }
   };

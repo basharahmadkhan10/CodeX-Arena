@@ -567,7 +567,7 @@ export default function RoomArenaPage() {
   const handleClose = () => {
     stopTimer();
     resetRoom();
-    navigate("/battle");
+    navigate("/dashboard");
   };
 
   const handleQuestionChange = (index) => {

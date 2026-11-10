@@ -79,8 +79,7 @@ export default function DashboardPage() {
       leaveQueue();
       toast("Left the queue");
     } else {
-      joinQueue();
-      toast("Searching for opponent...", { icon: "⚔️" });
+      navigate("/modes");
     }
   };
 

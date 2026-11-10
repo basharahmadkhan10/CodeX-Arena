@@ -205,8 +205,9 @@ export default function App() {
         />
 
         <Routes>
-          <Route path="/"                   element={!user ? <AuthPage /> : <ModesPage />} />
+          <Route path="/"                   element={!user ? <AuthPage /> : <Navigate to="/dashboard" replace />} />
           <Route path="/dashboard"          element={<RequireAuth><HomePage /></RequireAuth>} />
+          <Route path="/modes"              element={<RequireAuth><ModesPage /></RequireAuth>} />
           <Route path="/battle/1v1"         element={<RequireAuth><BattlePage /></RequireAuth>} />
           <Route path="/battle/debugging"   element={<RequireAuth><BattlePage /></RequireAuth>} />
           <Route path="/battle/room"        element={<RequireAuth><RoomBattlePage /></RequireAuth>} />
