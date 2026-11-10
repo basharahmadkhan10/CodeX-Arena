@@ -140,9 +140,9 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT column */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* LEFT column (60% on desktop) */}
+        <div className="lg:col-span-7 space-y-6">
           {/* Welcome + Hero Profile card */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -438,97 +438,111 @@ export default function DashboardPage() {
         </div>
 
         {/* RIGHT column: Leaderboard & Stats */}
-        <div className="space-y-6">
+        <div className="lg:col-span-5 space-y-6">
           {/* Leaderboard Card */}
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 px-1">
               <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-                <Trophy size={13} /> Leaderboard
+                <Trophy size={15} className="text-amber-300" /> Leaderboard
               </h3>
               <button
                 onClick={() => setIsRankRoadOpen(true)}
-                className="text-[11px] font-black text-white/80 hover:text-white uppercase tracking-wider underline underline-offset-2"
+                className="text-xs font-black text-white/90 hover:text-white uppercase tracking-wider underline underline-offset-4 flex items-center gap-1 group"
               >
-                View Trophy Road →
+                Trophy Road <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
 
-            <div className="bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-800 shadow-[5px_5px_0px_#000] rounded-2xl overflow-hidden transition-colors">
+            <div className="bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-800 shadow-[6px_6px_0px_#000] dark:shadow-[6px_6px_0px_rgba(255,255,255,0.06)] rounded-2xl overflow-hidden transition-colors">
               {/* Header */}
-              <div className="bg-[#ffffff] dark:bg-zinc-900 border-b-2 border-black dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
-                <p className="text-xs font-black text-black dark:text-white uppercase tracking-widest">
-                  Top Arena Players
-                </p>
-                <span className="text-[10px] font-black text-black/40 dark:text-zinc-500 uppercase">
-                  Global
+              <div className="bg-[#ffffff] dark:bg-zinc-900/90 border-b-2 border-black dark:border-zinc-800 px-5 py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-black text-black dark:text-white uppercase tracking-wider">
+                    Top Arena Champions
+                  </p>
+                  <p className="text-[11px] font-bold text-black/50 dark:text-zinc-400">
+                    Ranked by Competitive Elo (0 - 5000 RP)
+                  </p>
+                </div>
+                <span className="text-xs font-black text-black/60 dark:text-zinc-400 font-mono border-2 border-black/20 dark:border-zinc-700 rounded-lg px-2.5 py-1 bg-black/5 dark:bg-zinc-800">
+                  GLOBAL
                 </span>
               </div>
 
-              {leaderboard.slice(0, 15).map((u, i) => {
-                const uRank = getRankDetails(u.rating);
-                const isMe = u._id === user?._id;
-                return (
-                  <div
-                    key={u._id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b-2 border-black/10 dark:border-zinc-800/80 last:border-0 transition-colors ${
-                      isMe
-                        ? "bg-[#e0f8f8] dark:bg-cyan-950/40"
-                        : "hover:bg-[#f8fefe] dark:hover:bg-zinc-800/50"
-                    }`}
-                  >
-                    <span
-                      className={`w-7 h-7 flex items-center justify-center rounded-lg border-2 border-black text-xs font-black shadow-[2px_2px_0px_#000] shrink-0 ${
-                        i === 0
-                          ? "bg-amber-300 text-black"
-                          : i === 1
-                            ? "bg-gray-200 text-black"
-                            : i === 2
-                              ? "bg-amber-700/30 text-black"
-                              : "bg-white dark:bg-zinc-800 text-black/60 dark:text-zinc-300"
+              <div className="divide-y-2 divide-black/10 dark:divide-zinc-800/80 max-h-[560px] overflow-y-auto">
+                {leaderboard.slice(0, 20).map((u, i) => {
+                  const uRank = getRankDetails(u.rating);
+                  const isMe = u._id === user?._id;
+                  return (
+                    <div
+                      key={u._id}
+                      className={`flex items-center gap-3.5 px-5 py-3.5 transition-colors ${
+                        isMe
+                          ? "bg-[#e0f8f8] dark:bg-cyan-950/40"
+                          : "hover:bg-[#f8fefe] dark:hover:bg-zinc-800/50"
                       }`}
                     >
-                      {i + 1}
-                    </span>
-
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm font-black truncate ${
-                          isMe
-                            ? "text-[rgb(238,11,22)] dark:text-rose-400"
-                            : "text-black dark:text-white"
+                      {/* Position Badge */}
+                      <span
+                        className={`w-8 h-8 flex items-center justify-center rounded-xl border-2 border-black text-xs font-black shadow-[2px_2px_0px_#000] shrink-0 font-mono ${
+                          i === 0
+                            ? "bg-amber-300 text-black shadow-amber-400"
+                            : i === 1
+                              ? "bg-slate-200 text-black"
+                              : i === 2
+                                ? "bg-amber-700/40 text-black"
+                                : "bg-white dark:bg-zinc-800 text-black/60 dark:text-zinc-300"
                         }`}
                       >
-                        {u.username}
-                        {isMe && (
-                          <span className="text-[10px] font-black ml-1 text-[rgb(238,11,22)] dark:text-rose-400">
-                            (you)
-                          </span>
-                        )}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <RankBadge rating={u.rating} size="xs" showSub={false} />
-                        <span className="text-[11px] font-bold text-black/60 dark:text-zinc-400 truncate">
-                          {uRank.tier}
+                        {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                      </span>
+
+                      {/* Rank Crest Emblem */}
+                      <RankBadge rating={u.rating} size="sm" showSub={true} />
+
+                      {/* Player Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p
+                            className={`text-sm sm:text-base font-black truncate ${
+                              isMe
+                                ? "text-[rgb(238,11,22)] dark:text-rose-400"
+                                : "text-black dark:text-white"
+                            }`}
+                          >
+                            {u.username}
+                          </p>
+                          {isMe && (
+                            <span className="text-[10px] font-black uppercase bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 px-1.5 py-0.2 rounded border border-red-300 dark:border-red-800 font-mono">
+                              YOU
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-bold text-black/50 dark:text-zinc-400 truncate">
+                          {uRank.tier} • {u.wins || 0} Wins
+                        </p>
+                      </div>
+
+                      {/* Rating RP Pill */}
+                      <div className="text-right shrink-0">
+                        <span className="text-xs sm:text-sm font-black text-black dark:text-white bg-[#f0fafa] dark:bg-zinc-800 border-2 border-black dark:border-zinc-700 px-3 py-1 rounded-xl shadow-[2px_2px_0px_#000] inline-block font-mono">
+                          {u.rating} RP
                         </span>
                       </div>
                     </div>
-
-                    <span className="text-xs font-black text-black dark:text-white bg-[#f0fafa] dark:bg-zinc-800 border-2 border-black dark:border-zinc-700 px-2 py-0.5 rounded-lg shadow-[2px_2px_0px_#000] shrink-0 font-mono">
-                      {u.rating} RP
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
 
               {leaderboard.length === 0 && (
-                <div className="text-center text-black/30 dark:text-zinc-600 text-sm py-10 font-bold">
+                <div className="text-center text-black/30 dark:text-zinc-600 text-sm py-12 font-bold font-mono">
                   No ranked players yet
                 </div>
               )}
             </div>
 
             {/* Quick stats grid */}
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid grid-cols-2 gap-3.5">
               {[
                 { label: "Total Battles", value: user?.totalBattles || 0 },
                 { label: "Losses", value: user?.losses || 0 },
@@ -537,7 +551,7 @@ export default function DashboardPage() {
                   key={s.label}
                   className="bg-white dark:bg-zinc-900 border-2 border-black dark:border-zinc-800 shadow-[3px_3px_0px_#000] rounded-xl p-4 text-center transition-colors"
                 >
-                  <p className="text-2xl font-black text-black dark:text-white">{s.value}</p>
+                  <p className="text-2xl font-black text-black dark:text-white font-mono">{s.value}</p>
                   <p className="text-xs font-bold text-black/40 dark:text-zinc-500 uppercase tracking-wider mt-0.5">
                     {s.label}
                   </p>
